@@ -16,9 +16,8 @@ import Text.Regex.Posix
 
 main :: IO ()
 main = do
-  args <- getArgs
-  let reutersDir = args !! 0 in
-    doTheShit reutersDir
+  [reutersDir] <- getArgs
+  buildTrainTestCSVFiles reutersDir
 
 buildTrainTestCSVFiles :: FilePath -> IO ()
 buildTrainTestCSVFiles filePath = do 
