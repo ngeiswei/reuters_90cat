@@ -1,13 +1,13 @@
 #!/usr/bin/runhaskell
 
-import NLP.Stemmer
-import Data.Char
 import qualified Data.MultiSet as MS
-import System.Environment
-import System.Directory
-import qualified Data.Map as Map
-import Data.Monoid
-import Text.Regex.Posix
+import qualified Data.Map as DM
+import NLP.Stemmer (stem, Stemmer(English))
+import Data.CSV (genCsvFile)
+import Data.Char (toLower)
+import System.Environment (getArgs)
+import System.Directory (getDirectoryContents)
+import Text.Regex.Posix ((=~))
 
 -- Build dataset from Reuters 90 cat. Give in argument the directory
 -- where has been unpacked and produces 2 files, train and test sets
@@ -31,32 +31,33 @@ buildTrainTestCSVFiles filePath = do
 -- 2. a mapping from category to a list of messages (specifically a
 -- pair (message ID, Message)) 
 --
--- Return a pair (header, list of maps), i.e. the content of a CSV
--- file, according to the format defined in the comment above.
-buildCSV :: [String] -> Map.Map String [(String, String)]
-            -> ([String], [[String]])
-buildCSV wordList cat2Messages = (header, csvrows)
-  where header = ["message_id"] ++ (Map.keys cat2Messages) ++ wordList
+-- Return a CSV file, according to the format defined in the comment
+-- above. More specifically it is a list of rows. Each row is a list
+-- of Strings. The first row corresponds to the header, the other rows
+-- to the content.
+buildCSV :: [String] -> DM.Map String [(String, String)] -> [[String]]
+buildCSV wordList cat2Messages = header : csvrows
+  where header = ["message_id"] ++ (DM.keys cat2Messages) ++ wordList
         maprows = concat (myFoldMapWithKey buildRows cat2Messages)
         csvrows = map (maprow2csvrow header) maprows
 
-myFoldMapWithKey :: (k -> a -> b) -> Map.Map k a -> [b]
-myFoldMapWithKey f m = Map.foldrWithKey (\k a l -> (f k a) : l) [] m
+myFoldMapWithKey :: (k -> a -> b) -> DM.Map k a -> [b]
+myFoldMapWithKey f m = DM.foldrWithKey (\k a l -> (f k a) : l) [] m
 
-maprow2csvrow :: [String] -> Map.Map String String -> [String]
-maprow2csvrow header maprow = map (\k -> Map.findWithDefault "0" k maprow) header
+maprow2csvrow :: [String] -> DM.Map String String -> [String]
+maprow2csvrow header maprow = map (\k -> DM.findWithDefault "0" k maprow) header
 
 -- Given a category and pair (message ID, Message) return a map
 -- associating category to "1", "message_id" to the message ID, and
 -- each word to it's number of occurences.
-buildRow :: String -> (String, String) -> Map.Map String String
+buildRow :: String -> (String, String) -> DM.Map String String
 buildRow category (message_id, message) =
-  Map.fromList ([("message_id", message_id), (category, "1")] ++
-                (ms2plist (MS.fromList (stemMessage message))))
+  DM.fromList ([("message_id", message_id), (category, "1")] ++
+               (ms2plist (MS.fromList (stemMessage message))))
 
 -- Given a category and a list of pairs (message ID, Message) return a
 -- list of maps as buildRow does.
-buildRows :: String -> [(String, String)] -> [Map.Map String String]
+buildRows :: String -> [(String, String)] -> [DM.Map String String]
 buildRows category (x:l) = (buildRow category x) : (buildRows category l)
 buildRows category [] = []
 
