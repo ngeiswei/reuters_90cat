@@ -3,12 +3,14 @@
 import qualified Data.MultiSet as DMSet
 import qualified Data.Map as DMap
 import qualified Data.Set as DSet
+import Data.List
 import NLP.Stemmer (stem, Stemmer(English))
 import Data.CSV (genCsvFile)
 import Data.Char (toLower)
 import System.Environment (getArgs)
 import System.Directory (getDirectoryContents, doesDirectoryExist)
 import System.FilePath (pathSeparator)
+import System.IO
 import Control.Exception (assert)
 import Text.Regex.Posix ((=~))
 
@@ -31,7 +33,10 @@ buildTrainTestCSVFiles filePath = do
       reuters_test_dir = filePath ++ [pathSeparator] ++ test_dir
       reuters_train_dir = filePath ++ [pathSeparator] ++ train_dir
   -- let my_assert_result = assert ((elem test_dir reuters_dir) and (elem train_dir reuters_dir)) ""
-  putStrLn (show reuters_dir)
+  test_words <- stemFile reuters_test_dir
+  train_words <- stemFile reuters_train_dir
+  putStrLn ("test words = " ++ (show test_words))
+  putStrLn ("train words = " ++ (show train_words))
 
 -- Take a file (a normal file or a directory). If the file is not a
 -- directory, then return a set of stemmed words in that
@@ -40,13 +45,18 @@ buildTrainTestCSVFiles filePath = do
 stemFile :: FilePath -> IO (DSet.Set String)
 stemFile filePath = do
   isDir <- doesDirectoryExist filePath
-  if isDir then do
+  if isDir then do              -- Recursive case
     children <- getDirectoryContents filePath
-    stemmedSets <- sequence (map stemFile children)
+    let children_wc = delete (".." :: FilePath) (delete ("." :: FilePath) children)
+        mkfullpath child = filePath ++ [pathSeparator] ++ child
+    stemmedSets <- sequence (map stemFile (map mkfullpath children_wc))
     return (DSet.unions stemmedSets)
-  else do
-    content <- readFile filePath
-    return (DSet.fromList (stemMsg content))
+  else do                       -- Base case
+    handle <- openFile filePath ReadMode
+    contents <- hGetContents handle
+    hClose handle
+    let stmWords = stemMsg contents
+    return (DSet.fromList stmWords)
 
 -- TODO
 -- buildWordsCat2Msg
@@ -77,6 +87,8 @@ maprow2csvrow header maprow = map (\k -> DMap.findWithDefault "0" k maprow) head
 -- Given a category and pair (message ID, Message) return a map
 -- associating category to "1", "message_id" to the message ID, and
 -- each word to it's number of occurences.
+--
+-- TODO: don't redo the stemming
 buildRow :: String -> (String, String) -> DMap.Map String String
 buildRow category (message_id, message) =
   DMap.fromList ([("message_id", message_id), (category, "1")] ++
