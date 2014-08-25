@@ -1,8 +1,9 @@
 #!/usr/bin/runhaskell
 
-import qualified Data.MultiSet as DMSet
-import qualified Data.Map as DMap
-import qualified Data.Set as DSet
+import qualified Data.MultiSet as MSet
+import qualified Data.Map as Map
+import qualified Data.Set as Set
+import System.IO
 import Data.List
 import NLP.Stemmer (stem, Stemmer(English))
 import Data.CSV (genCsvFile)
@@ -10,7 +11,6 @@ import Data.Char (toLower)
 import System.Environment (getArgs)
 import System.Directory (getDirectoryContents, doesDirectoryExist)
 import System.FilePath (pathSeparator)
-import System.IO
 import Control.Exception (assert)
 import Text.Regex.Posix ((=~))
 
@@ -42,21 +42,21 @@ buildTrainTestCSVFiles filePath = do
 -- directory, then return a set of stemmed words in that
 -- file. Otherwise (if the file is a directory), call this function on
 -- all files of that direcory and build a set stemmed words.
-stemFile :: FilePath -> IO (DSet.Set String)
+stemFile :: FilePath -> IO (Set.Set String)
 stemFile filePath = do
+  putStrLn ("filePath = " ++ filePath)
   isDir <- doesDirectoryExist filePath
   if isDir then do              -- Recursive case
     children <- getDirectoryContents filePath
     let children_wc = delete (".." :: FilePath) (delete ("." :: FilePath) children)
         mkfullpath child = filePath ++ [pathSeparator] ++ child
     stemmedSets <- sequence (map stemFile (map mkfullpath children_wc))
-    return (DSet.unions stemmedSets)
+    return (Set.unions stemmedSets)
   else do                       -- Base case
-    handle <- openFile filePath ReadMode
-    contents <- hGetContents handle
-    hClose handle
+    contents <- readFile filePath
     let stmWords = stemMsg contents
-    return (DSet.fromList stmWords)
+    putStrLn ("stmWords = " ++ (show (length stmWords)))
+    return (Set.fromList stmWords)
 
 -- TODO
 -- buildWordsCat2Msg
@@ -72,38 +72,38 @@ stemFile filePath = do
 -- above. More specifically it is a list of rows. Each row is a list
 -- of Strings. The first row corresponds to the header, the other rows
 -- to the content.
-buildCSV :: [String] -> DMap.Map String [(String, String)] -> [[String]]
+buildCSV :: [String] -> Map.Map String [(String, String)] -> [[String]]
 buildCSV wordList cat2Msg = header : csvrows
-  where header = ["message_id"] ++ (DMap.keys cat2Msg) ++ wordList
+  where header = ["message_id"] ++ (Map.keys cat2Msg) ++ wordList
         maprows = concat (myFoldMapWithKey buildRows cat2Msg)
         csvrows = map (maprow2csvrow header) maprows
 
-myFoldMapWithKey :: (k -> a -> b) -> DMap.Map k a -> [b]
-myFoldMapWithKey f m = DMap.foldrWithKey (\k a l -> (f k a) : l) [] m
+myFoldMapWithKey :: (k -> a -> b) -> Map.Map k a -> [b]
+myFoldMapWithKey f m = Map.foldrWithKey (\k a l -> (f k a) : l) [] m
 
-maprow2csvrow :: [String] -> DMap.Map String String -> [String]
-maprow2csvrow header maprow = map (\k -> DMap.findWithDefault "0" k maprow) header
+maprow2csvrow :: [String] -> Map.Map String String -> [String]
+maprow2csvrow header maprow = map (\k -> Map.findWithDefault "0" k maprow) header
 
 -- Given a category and pair (message ID, Message) return a map
 -- associating category to "1", "message_id" to the message ID, and
 -- each word to it's number of occurences.
 --
 -- TODO: don't redo the stemming
-buildRow :: String -> (String, String) -> DMap.Map String String
+buildRow :: String -> (String, String) -> Map.Map String String
 buildRow category (message_id, message) =
-  DMap.fromList ([("message_id", message_id), (category, "1")] ++
-               (ms2plist (DMSet.fromList (stemMsg message))))
+  Map.fromList ([("message_id", message_id), (category, "1")] ++
+               (ms2plist (MSet.fromList (stemMsg message))))
 
 -- Given a category and a list of pairs (message ID, Message) return a
 -- list of maps as buildRow does.
-buildRows :: String -> [(String, String)] -> [DMap.Map String String]
+buildRows :: String -> [(String, String)] -> [Map.Map String String]
 buildRows category (x:l) = (buildRow category x) : (buildRows category l)
 buildRows category [] = []
 
 -- Convert a multiset into a list of pairs (key, count) replacing the
 -- count by a string of the count.
-ms2plist :: DMSet.MultiSet String -> [(String, String)]
-ms2plist ms = DMSet.foldOccur (\key count pl -> (key, show count) : pl) [] ms
+ms2plist :: MSet.MultiSet String -> [(String, String)]
+ms2plist ms = MSet.foldOccur (\key count pl -> (key, show count) : pl) [] ms
 
 -- Takes a message, stem all words, remove the junk and put it to
 -- lower case, and return that list of words (including duplicates).
@@ -119,4 +119,4 @@ lowerWords :: String -> [String]
 lowerWords = words . map toLower
 
 isAlphaWord :: String -> Bool
-isAlphaWord w = w =~ "^[[:alpha:]]$"
+isAlphaWord w = w =~ "^[[:alpha:]]+$"
