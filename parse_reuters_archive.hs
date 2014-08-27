@@ -2,17 +2,25 @@
 
 import qualified Data.MultiSet as MSet
 import qualified Data.Map as Map
+import qualified Data.MultiMap as MMap
 import qualified Data.Set as Set
-import System.IO
+import Data.Maybe
 import Data.List
-import NLP.Stemmer (stem, Stemmer(English))
+import Data.Functor
 import Data.CSV (genCsvFile)
 import Data.Char (toLower)
+
+import Control.Exception (assert)
+import Control.Monad
+
+import System.IO
 import System.Environment (getArgs)
 import System.Directory (getDirectoryContents, doesDirectoryExist)
-import System.FilePath (pathSeparator)
-import Control.Exception (assert)
+import System.FilePath (addTrailingPathSeparator, takeFileName)
+
 import Text.Regex.Posix ((=~))
+
+import NLP.Stemmer (stem, Stemmer(English))
 
 -- Build dataset from Reuters 90 cat. Give in argument the directory
 -- where has been unpacked and produces 2 files, train and test sets
@@ -23,87 +31,142 @@ import Text.Regex.Posix ((=~))
 main :: IO ()
 main = do
   [reutersDir] <- getArgs
-  buildTrainTestCSVFiles reutersDir
+  mkTrainTestCSVFiles reutersDir
 
-buildTrainTestCSVFiles :: FilePath -> IO ()
-buildTrainTestCSVFiles filePath = do 
-  reuters_dir <- getDirectoryContents filePath
-  let test_dir = "test"
-      train_dir = "training"
-      reuters_test_dir = filePath ++ [pathSeparator] ++ test_dir
-      reuters_train_dir = filePath ++ [pathSeparator] ++ train_dir
-  -- let my_assert_result = assert ((elem test_dir reuters_dir) and (elem train_dir reuters_dir)) ""
-  test_words <- stemFile reuters_test_dir
-  train_words <- stemFile reuters_train_dir
-  putStrLn ("test words = " ++ (show test_words))
-  putStrLn ("train words = " ++ (show train_words))
+-- Like mapM but return a Map mapping input to output, instead of list
+-- of outputs (suggested by lfairy on #haskell
+lfairyMagicMonad :: (Ord k, Functor f, Monad f) => (k -> f a) -> [k] -> f (Map.Map k a)
+lfairyMagicMonad f = fmap Map.fromList . mapM (\x -> (,) x <$> f x)
 
--- Take a file (a normal file or a directory). If the file is not a
--- directory, then return a set of stemmed words in that
--- file. Otherwise (if the file is a directory), call this function on
--- all files of that direcory and build a set stemmed words.
-stemFile :: FilePath -> IO (Set.Set String)
+mkTrainTestCSVFiles :: FilePath -> IO ()
+mkTrainTestCSVFiles filePath = do
+  let samples = ["training", "test"]
+      mkfullpath child = (addTrailingPathSeparator filePath) ++ child
+      smp2reutersDir = Map.fromList (map mkfullpath samples)
+
+  cat2Words <- forM samples $ \smp -> do
+    putStrLn ("Build multimap from category to words " ++ "(" ++ smp ++ ")...")
+    return mkCat2Words fromJust (lookup smp smp2reutersDir)
+    putStrLn "...done"
+
+  putStrLn "Are you here?"
+
+  -- CSVs <- forM
+  -- putStrLn "Build CSV data (test)..."
+  -- let testCSV = mkCSV test_cat2words
+  -- putStrLn "...done"
+
+  -- putStrLn "Build CSV data (train)..."
+  -- let trainCSV = mkCSV train_cat2words
+  -- putStrLn "...done"
+
+  -- putStrLn "Gen CSV file (test)..."
+  -- let testCSVContent = genCsvFile testCSV
+  -- putStrLn "...done"
+
+  -- putStrLn "Gen CSV file (train)..."
+  -- let trainCSVContent = genCsvFile testCSV
+  -- putStrLn "...done"
+
+  -- putStrLn "Write CSV file (test)..."
+  -- writeFile "test.csv" testCSVContent
+  -- putStrLn "...done"
+
+  -- putStrLn "Write CSV file (train)..."
+  -- writeFile "train.csv" trainCSVContent
+  -- putStrLn "...done"
+
+-- Structure to represent the list of words occurences associated to
+-- each category. A multimap is used so a category can have multiple
+-- message. A multiset is used so that the word count, not just the
+-- existence, is stored.
+type Cat2Words = MMap.MultiMap String (MSet.MultiSet String)
+
+-- Take a test or train directory containing as subdirectories the
+-- categories, which contains the messages. Return a multi-mapping of
+-- category to a multiset of stemmed words. We use a multimap so that
+-- a category can contain multiple messages, and we use a multiset so
+-- that words in a message are counted multiple times.
+mkCat2Words :: FilePath -> IO (Cat2Words)
+mkCat2Words filePath = do
+  children <- getDirectoryContents filePath
+  let categories = delCPDirs children
+      mkfullpath child = (addTrailingPathSeparator filePath) ++ child
+  catStemmedSets <- sequence (map stemCategory (map mkfullpath categories))
+  return (MMap.fromList (concat catStemmedSets))
+
+-- Remove current or parent directories from a list of directories
+delCPDirs dirs = delete (".." :: FilePath) (delete ("." :: FilePath) dirs)
+
+-- Take a category directory and return a list of pairs (category,
+-- multisets of stemmed words). Each element of the list correspond to
+-- a message.
+stemCategory :: FilePath -> IO ([(String, MSet.MultiSet String)])
+stemCategory catFilePath = do
+  children <- getDirectoryContents catFilePath
+  let messages = delCPDirs children
+      mkfullpath child = (addTrailingPathSeparator catFilePath) ++ child
+      category = takeFileName catFilePath
+      msgFullPaths = map mkfullpath messages
+      catStemFile filePath = do
+        words <- stemFile filePath
+        return (category, words)
+  sequence (map catStemFile msgFullPaths)
+
+-- Take a non-directory file and return a multiset of stemmed words in
+-- that file
+stemFile :: FilePath -> IO (MSet.MultiSet String)
 stemFile filePath = do
-  putStrLn ("filePath = " ++ filePath)
-  isDir <- doesDirectoryExist filePath
-  if isDir then do              -- Recursive case
-    children <- getDirectoryContents filePath
-    let children_wc = delete (".." :: FilePath) (delete ("." :: FilePath) children)
-        mkfullpath child = filePath ++ [pathSeparator] ++ child
-    stemmedSets <- sequence (map stemFile (map mkfullpath children_wc))
-    return (Set.unions stemmedSets)
-  else do                       -- Base case
-    contents <- readFile filePath
-    let stmWords = stemMsg contents
-    putStrLn ("stmWords = " ++ (show (length stmWords)))
-    return (Set.fromList stmWords)
+  contents <- readFile filePath
+  let stmWords = stemMsg contents
+  -- trick to actually read the file
+  putStrLn ("stmWords = " ++ (show (length stmWords)))
+  return (MSet.fromList stmWords)
 
--- TODO
--- buildWordsCat2Msg
+-- Given a Cat2Words strucure (provided from train to avoid having
+-- test information snooping in the train data), return a set of words
+-- used for training (and test). At this point the filter just
+-- includes words with total occurance above a certain threshold.
+wordCountThreshold :: Integer
+wordCountThreshold = 10
+selectWords :: Cat2Words -> Set.Set String
+selectWords cat2words = MSet.foldOccur op MSet.empty allwords
+  where allwords = MSet.unions (concat (MMap.elems cat2words))
+        op word count filteredWords = if count > wordCountThreshold then
+                                        filteredWords.insert word
+                                      else filteredWords
 
--- Given
---
--- 1. a list of all words
---
--- 2. a mapping from category to a list of messages (specifically a
--- pair (message ID, Message)) 
---
--- Return a CSV file, according to the format defined in the comment
--- above. More specifically it is a list of rows. Each row is a list
--- of Strings. The first row corresponds to the header, the other rows
--- to the content.
-buildCSV :: [String] -> Map.Map String [(String, String)] -> [[String]]
-buildCSV wordList cat2Msg = header : csvrows
-  where header = ["message_id"] ++ (Map.keys cat2Msg) ++ wordList
-        maprows = concat (myFoldMapWithKey buildRows cat2Msg)
-        csvrows = map (maprow2csvrow header) maprows
+-- Given a set of words (obtained from looking at the train data only)
+-- and Cat2Words structure, return a CSV file (according to the format
+-- defined in the comment above). More specifically it is a list of
+-- rows. Each row is a list of Strings. The first row corresponds to
+-- the header, the other rows to the content.
+mkCSV :: Set.Set String -> Cat2Words -> [[String]]
+mkCSV selWords cat2words = header : csvrows
+  where allCats = MMap.keys cat2words
+        header = (map addCatSig allCats) ++ (Set.toList selWords)
+        op category words rows = mkCSVRow category words header : rows
+        csvrows = MMap.foldrWithKey op [] cat2words
 
-myFoldMapWithKey :: (k -> a -> b) -> Map.Map k a -> [b]
-myFoldMapWithKey f m = Map.foldrWithKey (\k a l -> (f k a) : l) [] m
+-- Add category signature (in order to distiguish them from text
+-- words). The signature is __category__.
+addCatSig :: String -> String
+addCatSig cat = "__" ++ cat ++ "__"
 
-maprow2csvrow :: [String] -> Map.Map String String -> [String]
-maprow2csvrow header maprow = map (\k -> Map.findWithDefault "0" k maprow) header
+-- Check whether a string has the category signature.
+isCat :: String -> Bool
+isCat str = str =~ "^__.+__$"
 
--- Given a category and pair (message ID, Message) return a map
--- associating category to "1", "message_id" to the message ID, and
--- each word to it's number of occurences.
---
--- TODO: don't redo the stemming
-buildRow :: String -> (String, String) -> Map.Map String String
-buildRow category (message_id, message) =
-  Map.fromList ([("message_id", message_id), (category, "1")] ++
-               (ms2plist (MSet.fromList (stemMsg message))))
-
--- Given a category and a list of pairs (message ID, Message) return a
--- list of maps as buildRow does.
-buildRows :: String -> [(String, String)] -> [Map.Map String String]
-buildRows category (x:l) = (buildRow category x) : (buildRows category l)
-buildRows category [] = []
-
--- Convert a multiset into a list of pairs (key, count) replacing the
--- count by a string of the count.
-ms2plist :: MSet.MultiSet String -> [(String, String)]
-ms2plist ms = MSet.foldOccur (\key count pl -> (key, show count) : pl) [] ms
+-- Given a category, a multiset of stemmed words, the header
+-- (categories stemmed words) return a list of integers. If the
+-- category matches the category in the header, return "1", "0"
+-- otherwise. If the word matches the word in the header, return its
+-- count (according to the multiset), "0" otherwise.
+mkCSVRow :: String -> (MSet.MultiSet String) -> [String] -> [String]
+mkCSVRow category words header = map mkvalue header
+  where catSig = addCatSig category
+        mkvalue k | (k == catSig) = "1"
+                  | otherwise = show (MSet.occur k words)
 
 -- Takes a message, stem all words, remove the junk and put it to
 -- lower case, and return that list of words (including duplicates).
