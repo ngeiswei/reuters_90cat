@@ -4,16 +4,16 @@ import qualified Data.MultiSet as MSet
 import qualified Data.Map as Map
 import qualified Data.MultiMap as MMap
 import qualified Data.Set as Set
-import Data.Maybe
-import Data.List
-import Data.Functor
-import Data.CSV (genCsvFile)
-import Data.Char (toLower)
+
+import Data.Maybe (fromJust)
+import Data.Functor ((<$>))
+import Data.List (map, delete, concat)
+import Data.Text (Text, pack, unpack, concat, lines, words, toLower)
+import Data.Text.IO (readFile)
 
 import Control.Exception (assert)
-import Control.Monad
+import Control.Monad (forM_)
 
-import System.IO
 import System.Environment (getArgs)
 import System.Directory (getDirectoryContents, doesDirectoryExist)
 import System.FilePath (addTrailingPathSeparator, takeFileName)
@@ -58,30 +58,27 @@ mkTrainTestCSVFiles filePath = do
 
   putStrLn "Select words..."
   let selWords = selectWords (get "training" smp2Cat2Words)
+  putStrLn ("...selected " ++ (show (Set.size selWords)) ++ " words")
 
-  smp2CSV <- flfairyM samples $ \smp -> do
+  smp2CSVContents <- flfairyM samples $ \smp -> do
     putStrLn ("Build CSV content " ++ "(" ++ smp ++ ")...")
     return (mkCSV selWords (get smp smp2Cat2Words))
   putStrLn "...done"
 
-  smp2CSV <- flfairyM samples $ \smp -> do
-    putStrLn ("Gen CSV string " ++ "(" ++ smp ++ ")...")
-    return (genCsvFile (get smp smp2CSV))
+  forM_ samples $ \smp -> do
+    putStrLn ("Write CSV file " ++ "(" ++ smp ++ ")...")
+    writeCSVFile (smp ++ ".csv") (get smp smp2CSVContents)
   putStrLn "...done"
-
-  -- putStrLn "Write CSV file (test)..."
-  -- writeFile "test.csv" testCSVContent
-  -- putStrLn "...done"
-
-  -- putStrLn "Write CSV file (train)..."
-  -- writeFile "train.csv" trainCSVContent
-  -- putStrLn "...done"
 
 -- Structure to represent the list of words occurences associated to
 -- each category. A multimap is used so a category can have multiple
 -- message. A multiset is used so that the word count, not just the
 -- existence, is stored.
-type Cat2Words = MMap.MultiMap String (MSet.MultiSet String)
+type Cat2Words = MMap.MultiMap Text (MSet.MultiSet Text)
+
+writeCSVFile :: FilePath -> [[Text]] -> IO ()
+writeCSVFile filePath csv = do
+  putStrLn "TODO: write CSV file"
 
 -- Take a test or train directory containing as subdirectories the
 -- categories, which contains the messages. Return a multi-mapping of
@@ -94,7 +91,7 @@ mkCat2Words filePath = do
   let categories = delCPDirs children
       mkfullpath child = (addTrailingPathSeparator filePath) ++ child
   catStemmedSets <- sequence (map stemCategory (map mkfullpath categories))
-  return (MMap.fromList (concat catStemmedSets))
+  return (MMap.fromList (Data.List.concat catStemmedSets))
 
 -- Remove current or parent directories from a list of directories
 delCPDirs dirs = delete (".." :: FilePath) (delete ("." :: FilePath) dirs)
@@ -102,12 +99,12 @@ delCPDirs dirs = delete (".." :: FilePath) (delete ("." :: FilePath) dirs)
 -- Take a category directory and return a list of pairs (category,
 -- multisets of stemmed words). Each element of the list correspond to
 -- a message.
-stemCategory :: FilePath -> IO ([(String, MSet.MultiSet String)])
+stemCategory :: FilePath -> IO ([(Text, MSet.MultiSet Text)])
 stemCategory catFilePath = do
   children <- getDirectoryContents catFilePath
   let messages = delCPDirs children
       mkfullpath child = (addTrailingPathSeparator catFilePath) ++ child
-      category = takeFileName catFilePath
+      category = pack (takeFileName catFilePath)
       msgFullPaths = map mkfullpath messages
       catStemFile filePath = do
         words <- stemFile filePath
@@ -116,23 +113,20 @@ stemCategory catFilePath = do
 
 -- Take a non-directory file and return a multiset of stemmed words in
 -- that file
-stemFile :: FilePath -> IO (MSet.MultiSet String)
+stemFile :: FilePath -> IO (MSet.MultiSet Text)
 stemFile filePath = do
-  contents <- readFile filePath
-  let stmWords = stemMsg contents
-  -- trick to actually read the file
-  putStrLn ("stmWords = " ++ (show (length stmWords)))
-  return (MSet.fromList stmWords)
+  contents <- Data.Text.IO.readFile filePath
+  return (MSet.fromList (stemMsg contents))
 
 -- Given a Cat2Words strucure (provided from train to avoid having
 -- test information snooping in the train data), return a set of words
 -- used for training (and test). At this point the filter just
 -- includes words with total occurance above a certain threshold.
 wordCountThreshold :: MSet.Occur
-wordCountThreshold = 10
-selectWords :: Cat2Words -> Set.Set String
+wordCountThreshold = 1000
+selectWords :: Cat2Words -> Set.Set Text
 selectWords cat2words = MSet.foldOccur op Set.empty allwords
-  where allwords = MSet.unions (concat (MMap.elems cat2words))
+  where allwords = MSet.unions (Data.List.concat (MMap.elems cat2words))
         op word count selWords = if count > wordCountThreshold then
                                    Set.insert word selWords
                                  else selWords
@@ -142,7 +136,7 @@ selectWords cat2words = MSet.foldOccur op Set.empty allwords
 -- defined in the comment above). More specifically it is a list of
 -- rows. Each row is a list of Strings. The first row corresponds to
 -- the header, the other rows to the content.
-mkCSV :: Set.Set String -> Cat2Words -> [[String]]
+mkCSV :: Set.Set Text -> Cat2Words -> [[Text]]
 mkCSV selWords cat2words = header : csvrows
   where allCats = MMap.keys cat2words
         header = (map addCatSig allCats) ++ (Set.toList selWords)
@@ -151,36 +145,42 @@ mkCSV selWords cat2words = header : csvrows
 
 -- Add category signature (in order to distiguish them from text
 -- words). The signature is __category__.
-addCatSig :: String -> String
-addCatSig cat = "__" ++ cat ++ "__"
+catSig :: Text
+catSig = pack "__"
+addCatSig :: Text -> Text
+addCatSig cat = Data.Text.concat [catSig, cat, catSig]
 
 -- Check whether a string has the category signature.
-isCat :: String -> Bool
-isCat str = str =~ "^__.+__$"
+isCat :: Text -> Bool
+isCat str = (unpack str) =~ "^__.+__$"
 
 -- Given a category, a multiset of stemmed words, the header
 -- (categories stemmed words) return a list of integers. If the
 -- category matches the category in the header, return "1", "0"
 -- otherwise. If the word matches the word in the header, return its
 -- count (according to the multiset), "0" otherwise.
-mkCSVRow :: String -> (MSet.MultiSet String) -> [String] -> [String]
+mkCSVRow :: Text -> (MSet.MultiSet Text) -> [Text] -> [Text]
 mkCSVRow category words header = map mkvalue header
   where catSig = addCatSig category
-        mkvalue k | (k == catSig) = "1"
-                  | otherwise = show (MSet.occur k words)
+        mkvalue k | (k == catSig) = pack "1"
+                  | otherwise = pack (show (MSet.occur k words))
 
 -- Takes a message, stem all words, remove the junk and put it to
 -- lower case, and return that list of words (including duplicates).
-stemMsg :: String -> [String]
-stemMsg = concat . map (stemWords . lowerWords) . lines
+stemMsg :: Text -> [Text]
+stemMsg = Data.List.concat . map (stemWords . lowerWords) . Data.Text.lines
 
 -- Stem a list of words and only retain the alpha words
-stemWords :: [String] -> [String]
-stemWords ws = filter isAlphaWord (map (stem English) ws)
+stemWords :: [Text] -> [Text]
+stemWords ws = filter isAlphaWord (map bstem ws)
+
+-- Call stem on a ByteString, do the necessary convertion
+bstem :: Text -> Text
+bstem bsw = pack (stem English (unpack bsw))
 
 -- Like words but output everything in lower case
-lowerWords :: String -> [String]
-lowerWords = words . map toLower
+lowerWords :: Text -> [Text]
+lowerWords = Data.Text.words . Data.Text.toLower
 
-isAlphaWord :: String -> Bool
-isAlphaWord w = w =~ "^[[:alpha:]]+$"
+isAlphaWord :: Text -> Bool
+isAlphaWord w = (unpack w) =~ "^[[:alpha:]]+$"
