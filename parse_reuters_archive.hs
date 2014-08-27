@@ -34,39 +34,40 @@ main = do
   mkTrainTestCSVFiles reutersDir
 
 -- Like mapM but return a Map mapping input to output, instead of list
--- of outputs (suggested by lfairy on #haskell
-lfairyMagicMonad :: (Ord k, Functor f, Monad f) => (k -> f a) -> [k] -> f (Map.Map k a)
-lfairyMagicMonad f = fmap Map.fromList . mapM (\x -> (,) x <$> f x)
+-- of outputs (suggested by lfairy on #haskell)
+lfairyM :: (Ord k, Functor f, Monad f) => (k -> f a) -> [k] -> f (Map.Map k a)
+lfairyM f = fmap Map.fromList . mapM (\x -> (,) x <$> f x)
+
+-- Flipped version of lfairyM
+flfairyM :: (Ord k, Functor f, Monad f) => [k] -> (k -> f a) -> f (Map.Map k a)
+flfairyM = flip lfairyM
 
 mkTrainTestCSVFiles :: FilePath -> IO ()
 mkTrainTestCSVFiles filePath = do
   let samples = ["training", "test"]
       mkSmpPathPair smp = (smp, (addTrailingPathSeparator filePath) ++ smp)
       smp2reutersDir = Map.fromList (map mkSmpPathPair samples)
+      -- Unsafe Map lookup
+      get element container = fromJust (Map.lookup element container)
 
-  cat2Words <- forM samples $ \smp -> do
+  smp2Cat2Words <- flfairyM samples $ \smp -> do
     putStrLn ("Build multimap from category to words " ++ "(" ++ smp ++ ")...")
-    -- return mkCat2Words (fromJust (lookup smp smp2reutersDir))
-    putStrLn "...done"
+    cat2words <- mkCat2Words (get smp smp2reutersDir)
+    return cat2words
+  putStrLn "...done"
 
-  putStrLn "Are you here?"
+  putStrLn "Select words..."
+  let selWords = selectWords (get "training" smp2Cat2Words)
 
-  -- CSVs <- forM
-  -- putStrLn "Build CSV data (test)..."
-  -- let testCSV = mkCSV test_cat2words
-  -- putStrLn "...done"
+  smp2CSV <- flfairyM samples $ \smp -> do
+    putStrLn ("Build CSV content " ++ "(" ++ smp ++ ")...")
+    return (mkCSV selWords (get smp smp2Cat2Words))
+  putStrLn "...done"
 
-  -- putStrLn "Build CSV data (train)..."
-  -- let trainCSV = mkCSV train_cat2words
-  -- putStrLn "...done"
-
-  -- putStrLn "Gen CSV file (test)..."
-  -- let testCSVContent = genCsvFile testCSV
-  -- putStrLn "...done"
-
-  -- putStrLn "Gen CSV file (train)..."
-  -- let trainCSVContent = genCsvFile testCSV
-  -- putStrLn "...done"
+  smp2CSV <- flfairyM samples $ \smp -> do
+    putStrLn ("Gen CSV string " ++ "(" ++ smp ++ ")...")
+    return (genCsvFile (get smp smp2CSV))
+  putStrLn "...done"
 
   -- putStrLn "Write CSV file (test)..."
   -- writeFile "test.csv" testCSVContent
