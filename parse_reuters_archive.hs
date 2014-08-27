@@ -41,12 +41,12 @@ lfairyMagicMonad f = fmap Map.fromList . mapM (\x -> (,) x <$> f x)
 mkTrainTestCSVFiles :: FilePath -> IO ()
 mkTrainTestCSVFiles filePath = do
   let samples = ["training", "test"]
-      mkfullpath child = (addTrailingPathSeparator filePath) ++ child
-      smp2reutersDir = Map.fromList (map mkfullpath samples)
+      mkSmpPathPair smp = (smp, (addTrailingPathSeparator filePath) ++ smp)
+      smp2reutersDir = Map.fromList (map mkSmpPathPair samples)
 
   cat2Words <- forM samples $ \smp -> do
     putStrLn ("Build multimap from category to words " ++ "(" ++ smp ++ ")...")
-    return mkCat2Words fromJust (lookup smp smp2reutersDir)
+    -- return mkCat2Words (fromJust (lookup smp smp2reutersDir))
     putStrLn "...done"
 
   putStrLn "Are you here?"
@@ -127,14 +127,14 @@ stemFile filePath = do
 -- test information snooping in the train data), return a set of words
 -- used for training (and test). At this point the filter just
 -- includes words with total occurance above a certain threshold.
-wordCountThreshold :: Integer
+wordCountThreshold :: MSet.Occur
 wordCountThreshold = 10
 selectWords :: Cat2Words -> Set.Set String
-selectWords cat2words = MSet.foldOccur op MSet.empty allwords
+selectWords cat2words = MSet.foldOccur op Set.empty allwords
   where allwords = MSet.unions (concat (MMap.elems cat2words))
-        op word count filteredWords = if count > wordCountThreshold then
-                                        filteredWords.insert word
-                                      else filteredWords
+        op word count selWords = if count > wordCountThreshold then
+                                   Set.insert word selWords
+                                 else selWords
 
 -- Given a set of words (obtained from looking at the train data only)
 -- and Cat2Words structure, return a CSV file (according to the format
