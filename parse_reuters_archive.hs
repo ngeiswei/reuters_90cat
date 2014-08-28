@@ -8,15 +8,17 @@ import qualified Data.Set as Set
 import Data.Maybe (fromJust)
 import Data.Functor ((<$>))
 import Data.List (map, delete, concat)
-import Data.Text (Text, pack, unpack, concat, lines, words, toLower)
-import Data.Text.IO (readFile)
+import Data.Text (Text, pack, unpack, concat, lines, words, toLower, intercalate)
+import Data.Text.IO (readFile, hPutStrLn)
 
 import Control.Exception (assert)
-import Control.Monad (forM_)
+import Control.Monad (forM, forM_, when)
 
-import System.Environment (getArgs)
+import System.Environment (getArgs, getProgName)
 import System.Directory (getDirectoryContents, doesDirectoryExist)
 import System.FilePath (addTrailingPathSeparator, takeFileName)
+import System.IO (openFile, hClose, IOMode(WriteMode))
+import System.Exit (exitFailure)
 
 import Text.Regex.Posix ((=~))
 
@@ -30,7 +32,17 @@ import NLP.Stemmer (stem, Stemmer(English))
 
 main :: IO ()
 main = do
-  [reutersDir] <- getArgs
+  -- Capture arguments
+  args <- getArgs
+  prgName <- getProgName
+
+  -- Error if not right number of arguments
+  when (length args /= 1) (do
+    putStrLn ("Usage: " ++ prgName ++ " REUTER90_PATH")
+    exitFailure)
+
+  -- Parse arguments and run program
+  let [reutersDir] = args
   mkTrainTestCSVFiles reutersDir
 
 -- Like mapM but return a Map mapping input to output, instead of list
@@ -78,7 +90,14 @@ type Cat2Words = MMap.MultiMap Text (MSet.MultiSet Text)
 
 writeCSVFile :: FilePath -> [[Text]] -> IO ()
 writeCSVFile filePath csv = do
-  putStrLn "TODO: write CSV file"
+  h <- openFile filePath WriteMode
+  forM_ csv (Data.Text.IO.hPutStrLn h . showCsvRow)
+  hClose h
+
+csvSep :: Text
+csvSep = pack ","
+showCsvRow :: [Text] -> Text
+showCsvRow row = intercalate csvSep row
 
 -- Take a test or train directory containing as subdirectories the
 -- categories, which contains the messages. Return a multi-mapping of
