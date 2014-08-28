@@ -24,11 +24,11 @@ import Text.Regex.Posix ((=~))
 
 import NLP.Stemmer (stem, Stemmer(English))
 
--- Build dataset from Reuters 90 cat. Give in argument the directory
--- where has been unpacked and produces 2 files, train and test sets
--- in CSV format. Each row corresponds to a message, and each column
--- correspond to a word or a category. Categories have the syntax
--- __category__ in order to distinguish them from words.
+-- Build dataset from Reuters 90 cat. Given in argument the directory
+-- where has been unpacked the archive and a target category, produces
+-- 2 files, train and test sets in CSV format. Each row corresponds to
+-- a message. The first column corresponds to the category target, and
+-- each following column correspond to a word.
 
 main :: IO ()
 main = do
@@ -37,13 +37,13 @@ main = do
   prgName <- getProgName
 
   -- Error if not right number of arguments
-  when (length args /= 1) (do
-    putStrLn ("Usage: " ++ prgName ++ " REUTER90_PATH")
+  when (length args /= 2) (do
+    putStrLn ("Usage: " ++ prgName ++ " REUTER90_PATH CATEGORY")
     exitFailure)
 
   -- Parse arguments and run program
-  let [reutersDir] = args
-  mkTrainTestCSVFiles reutersDir
+  let [reutersDir, category] = args
+  mkTrainTestCSVFiles reutersDir category
 
 -- Like mapM but return a Map mapping input to output, instead of list
 -- of outputs (suggested by lfairy on #haskell)
@@ -54,8 +54,8 @@ lfairyM f = fmap Map.fromList . mapM (\x -> (,) x <$> f x)
 flfairyM :: (Ord k, Functor f, Monad f) => [k] -> (k -> f a) -> f (Map.Map k a)
 flfairyM = flip lfairyM
 
-mkTrainTestCSVFiles :: FilePath -> IO ()
-mkTrainTestCSVFiles filePath = do
+mkTrainTestCSVFiles :: FilePath -> String -> IO ()
+mkTrainTestCSVFiles filePath category = do
   let samples = ["training", "test"]
       mkSmpPathPair smp = (smp, (addTrailingPathSeparator filePath) ++ smp)
       smp2reutersDir = Map.fromList (map mkSmpPathPair samples)
@@ -74,12 +74,12 @@ mkTrainTestCSVFiles filePath = do
 
   smp2CSVContents <- flfairyM samples $ \smp -> do
     putStrLn ("Build CSV content " ++ "(" ++ smp ++ ")...")
-    return (mkCSV selWords (get smp smp2Cat2Words))
+    return (mkCSV (pack category) selWords (get smp smp2Cat2Words))
   putStrLn "...done"
 
   forM_ samples $ \smp -> do
     putStrLn ("Write CSV file " ++ "(" ++ smp ++ ")...")
-    writeCSVFile (smp ++ ".csv") (get smp smp2CSVContents)
+    writeCSVFile (smp ++ "_" ++ category ++ ".csv") (get smp smp2CSVContents)
   putStrLn "...done"
 
 -- Structure to represent the list of words occurences associated to
@@ -142,7 +142,7 @@ stemFile filePath = do
 -- used for training (and test). At this point the filter just
 -- includes words with total occurance above a certain threshold.
 wordCountThreshold :: MSet.Occur
-wordCountThreshold = 20
+wordCountThreshold = 40
 selectWords :: Cat2Words -> Set.Set Text
 selectWords cat2words = MSet.foldOccur op Set.empty allwords
   where allwords = MSet.unions (Data.List.concat (MMap.elems cat2words))
@@ -150,45 +150,34 @@ selectWords cat2words = MSet.foldOccur op Set.empty allwords
                                    Set.insert word selWords
                                  else selWords
 
--- Given a set of words (obtained from looking at the train data only)
--- and Cat2Words structure, return a CSV file (according to the format
--- defined in the comment above). More specifically it is a list of
--- rows. Each row is a list of Strings. The first row corresponds to
--- the header, the other rows to the content.
-mkCSV :: Set.Set Text -> Cat2Words -> [[Text]]
-mkCSV selWords cat2words = header : csvrows
-  where allCats = MMap.keys cat2words
-        header = (map addCatSig allCats) ++ (Set.toList selWords)
-        op category words rows = mkCSVRow category words header : rows
+-- Given a category, a set of words (obtained from looking at the
+-- train data only) and Cat2Words structure, return a CSV file
+-- (according to the format defined in the comment above). More
+-- specifically it is a list of rows. Each row is a list of
+-- Strings. The first row corresponds to the header, the other rows to
+-- the content.
+mkCSV :: Text -> Set.Set Text -> Cat2Words -> [[Text]]
+mkCSV targetCat selWords cat2words = header : csvrows
+  where selWordList = Set.toList selWords
+        header = (pack "target") : selWordList
+        op category words rows = mkCSVRow category targetCat words selWordList
+                                 : rows
         csvrows = MMap.foldrWithKey op [] cat2words
 
--- Add category signature (in order to distiguish them from text
--- words). The signature is __category__.
-catSig :: Text
-catSig = pack "__"
-addCatSig :: Text -> Text
-addCatSig cat = Data.Text.concat [catSig, cat, catSig]
+-- Turn a Bool into a binary format Text
+bool2Text :: Bool -> Text
+bool2Text False = pack "0"
+bool2Text True = pack "1"
 
--- Check whether a string has the category signature.
-isCat :: Text -> Bool
-isCat str = (unpack str) =~ "^__.+__$"
-
--- Turn count into Text. For now 0 is mapped to "0", any other value
--- is mapped to "1".
-count2Text :: MSet.Occur -> Text
-count2Text 0 = pack "0"
-count2Text _ = pack "1"
-
--- Given a category, a multiset of stemmed words, the header
--- (categories stemmed words) return a list of integers. If the
--- category matches the category in the header, return "1", "0"
--- otherwise. If the word matches the word in the header, return its
--- count (according to the multiset), "0" otherwise.
-mkCSVRow :: Text -> (MSet.MultiSet Text) -> [Text] -> [Text]
-mkCSVRow category words header = map mkvalue header
-  where catSig = addCatSig category
-        mkvalue k | (k == catSig) = pack "1"
-                  | otherwise = count2Text (MSet.occur k words)
+-- Given a category, a target category, a multiset of stemmed words,
+-- and all words used as input features, return list of Texts. In the
+-- first element, if the category matches the target category, place
+-- "1", "0" otherwise. Then if the word matches the word in the word
+-- list, place "1" its count is above 0, "0" otherwise.
+mkCSVRow :: Text -> Text -> (MSet.MultiSet Text) -> [Text] -> [Text]
+mkCSVRow category targetCat words wordList = catValue : wordValues
+  where catValue = bool2Text (category == targetCat)
+        wordValues = map (\k -> bool2Text (MSet.member k words)) wordList
 
 -- Takes a message, stem all words, remove the junk and put it to
 -- lower case, and return that list of words (including duplicates).
