@@ -123,7 +123,7 @@ stemFile filePath = do
 -- used for training (and test). At this point the filter just
 -- includes words with total occurance above a certain threshold.
 wordCountThreshold :: MSet.Occur
-wordCountThreshold = 1000
+wordCountThreshold = 20
 selectWords :: Cat2Words -> Set.Set Text
 selectWords cat2words = MSet.foldOccur op Set.empty allwords
   where allwords = MSet.unions (Data.List.concat (MMap.elems cat2words))
@@ -154,6 +154,12 @@ addCatSig cat = Data.Text.concat [catSig, cat, catSig]
 isCat :: Text -> Bool
 isCat str = (unpack str) =~ "^__.+__$"
 
+-- Turn count into Text. For now 0 is mapped to "0", any other value
+-- is mapped to "1".
+count2Text :: MSet.Occur -> Text
+count2Text 0 = pack "0"
+count2Text _ = pack "1"
+
 -- Given a category, a multiset of stemmed words, the header
 -- (categories stemmed words) return a list of integers. If the
 -- category matches the category in the header, return "1", "0"
@@ -163,7 +169,7 @@ mkCSVRow :: Text -> (MSet.MultiSet Text) -> [Text] -> [Text]
 mkCSVRow category words header = map mkvalue header
   where catSig = addCatSig category
         mkvalue k | (k == catSig) = pack "1"
-                  | otherwise = pack (show (MSet.occur k words))
+                  | otherwise = count2Text (MSet.occur k words)
 
 -- Takes a message, stem all words, remove the junk and put it to
 -- lower case, and return that list of words (including duplicates).
