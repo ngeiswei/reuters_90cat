@@ -1,5 +1,11 @@
 #!/usr/bin/runhaskell
 
+-- Build dataset from Reuters 90 cat. Given in argument the directory
+-- where has been unpacked the archive and a target category, produces
+-- 2 files, train and test sets in CSV format. Each row corresponds to
+-- a message. The first column corresponds to the category target, and
+-- each following column correspond to a word.
+
 import qualified Data.MultiSet as MSet
 import qualified Data.Map as Map
 import qualified Data.MultiMap as MMap
@@ -23,12 +29,6 @@ import System.Exit (exitFailure)
 import Text.Regex.Posix ((=~))
 
 import NLP.Stemmer (stem, Stemmer(English))
-
--- Build dataset from Reuters 90 cat. Given in argument the directory
--- where has been unpacked the archive and a target category, produces
--- 2 files, train and test sets in CSV format. Each row corresponds to
--- a message. The first column corresponds to the category target, and
--- each following column correspond to a word.
 
 main :: IO ()
 main = do
