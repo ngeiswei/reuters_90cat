@@ -42,7 +42,6 @@ main = do
   hPutStrLn hOut header
 
   -- Iterate through all rows and probabilistically drop some
-  -- TODO add end of file test
   forM_ random_biased_bools $ \b -> do
     isEOF <- hIsEOF hIn
     when isEOF $ do hClose hIn; hClose hOut; exitSuccess
