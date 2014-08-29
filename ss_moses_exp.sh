@@ -46,7 +46,7 @@ for cat in $categories; do
         warnEcho "Skip parse Reuters90"
     fi
 
-    for ss_ratio in $subsmp_ratios; do
+    for ss_ratio in ${subsmp_ratios[@]}; do
         # Subsample the training file
         if [[ $skip_subsampling == false ]]; then
             infoEcho "Subsample training CSV file (subsample ratio = $ss_ratio)"
