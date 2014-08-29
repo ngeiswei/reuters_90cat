@@ -142,7 +142,7 @@ stemFile filePath = do
 -- used for training (and test). At this point the filter just
 -- includes words with total occurance above a certain threshold.
 wordCountThreshold :: MSet.Occur
-wordCountThreshold = 40
+wordCountThreshold = 50
 selectWords :: Cat2Words -> Set.Set Text
 selectWords cat2words = MSet.foldOccur op Set.empty allwords
   where allwords = MSet.unions (Data.List.concat (MMap.elems cat2words))
