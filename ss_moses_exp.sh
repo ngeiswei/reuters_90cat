@@ -47,10 +47,14 @@ for cat in $categories; do
     fi
 
     for ss_ratio in ${subsmp_ratios[@]}; do
+        SUBSMP_DIR=subsmp_ratio_$ss_ratio
+        mkdir "$SUBSMP_DIR"
+        cd "$SUBSMP_DIR"
+
         # Subsample the training file
         if [[ $skip_subsampling == false ]]; then
             infoEcho "Subsample training CSV file (subsample ratio = $ss_ratio)"
-            "$PROG_DIR/subsample.hs" training_$cat.csv $ss_ratio $rnd_seed
+            "$PROG_DIR/subsample.hs" "../training_$cat.csv" $ss_ratio $rnd_seed
         else
             warnEcho "Skip subsample training CSV file"
         fi
@@ -60,7 +64,8 @@ for cat in $categories; do
         TF=training_${cat}_subsmp_ratio_${ss_ratio}_rnd_seed_${rnd_seed}.csv
         if [[ $skip_feature_selection == false ]]; then
             infoEcho "Run pre-feature selection on $TF"
-            "$PROG_DIR/feature-selection.sh" "../$DST_SETTINGS" "$TF" "$rnd_seed"
+            "$PROG_DIR/feature-selection.sh" "../../$DST_SETTINGS" \
+                "$TF" "$rnd_seed"
         else
             warnEcho "Skip feature selection"
         fi
@@ -70,7 +75,7 @@ for cat in $categories; do
         FTF=filtered_$TF
         if [[ $skip_learning == false ]]; then
             infoEcho "Run subsample MOSES on the subsampled training set"
-            "$PROG_DIR/moses.sh" "../$DST_SETTINGS" "$FTF" "$rnd_seed"
+            "$PROG_DIR/moses.sh" "../../$DST_SETTINGS" "$FTF" "$rnd_seed"
         else
             warnEcho "Skip learning"
         fi
@@ -80,6 +85,8 @@ for cat in $categories; do
         # TODO
 
         ((++rnd_seed))
+
+        cd ..
     done
 
     cd ..
