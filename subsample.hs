@@ -45,6 +45,6 @@ main = do
   -- TODO add end of file test
   forM_ random_biased_bools $ \b -> do
     isEOF <- hIsEOF hIn
-    when isEOF exitSuccess
+    when isEOF $ do hClose hIn; hClose hOut; exitSuccess
     content <- hGetLine hIn
     when b $ hPutStrLn hOut content
