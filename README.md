@@ -8,7 +8,7 @@ Requirements
 ------------
 
 * git
-
+* Haskell
 * MOSES
 
 Instructions
@@ -27,3 +27,9 @@ Instructions
     wget http://disi.unitn.it/moschitti/corpora/Reuters21578-Apte-90Cat.tar.gz
     tar xvzf Reuters21578-Apte-90Cat.tar.gz
     ```
+
+3. Convert the archive into utf-8 format
+
+    ```
+    ./conver_to_utf-8.sh
+    ````
