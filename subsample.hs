@@ -4,13 +4,13 @@
 
 import Data.Text.IO (hGetLine, hPutStrLn)
 
-import Control.Monad (when, forM_)
+import Control.Monad (unless, when, forM_)
 
 import System.Random (mkStdGen, randoms)
 import System.FilePath (dropExtension, takeExtension)
 import System.Environment (getArgs, getProgName)
-import System.Exit (exitFailure)
-import System.IO (openFile, hClose, IOMode(ReadMode), IOMode(WriteMode))
+import System.Exit (exitFailure, exitSuccess)
+import System.IO (openFile, hClose, hIsEOF, IOMode(ReadMode), IOMode(WriteMode))
 
 main :: IO ()
 main = do
@@ -44,5 +44,7 @@ main = do
   -- Iterate through all rows and probabilistically drop some
   -- TODO add end of file test
   forM_ random_biased_bools $ \b -> do
+    isEOF <- hIsEOF hIn
+    when isEOF exitSuccess
     content <- hGetLine hIn
     when b $ hPutStrLn hOut content
