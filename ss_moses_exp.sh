@@ -47,21 +47,21 @@ for cat in $categories; do
     fi
 
     for ss_ratio in ${subsmp_ratios[@]}; do
-        SUBSMP_DIR=subsmp_ratio_$ss_ratio
+        SUBSMP_DIR=ss_ratio_$ss_ratio
         mkdir "$SUBSMP_DIR"
         cd "$SUBSMP_DIR"
 
         # Subsample the training file
         if [[ $skip_subsampling == false ]]; then
             infoEcho "Subsample training CSV file (subsample ratio = $ss_ratio)"
-            "$PROG_DIR/subsample.hs" "../training_$cat.csv" $ss_ratio $rnd_seed
+            "$PROG_DIR/subsample.hs" "../train_$cat.csv" $ss_ratio $rnd_seed
         else
             warnEcho "Skip subsample training CSV file"
         fi
 
         # Select the most important features
         # Define training file to be passed to feature selection
-        TF=training_${cat}_subsmp_ratio_${ss_ratio}_rnd_seed_${rnd_seed}.csv
+        TF=train_${cat}_ss_ratio_${ss_ratio}_rnd_seed_${rnd_seed}.csv
         if [[ $skip_feature_selection == false ]]; then
             infoEcho "Run pre-feature selection on $TF"
             "$PROG_DIR/feature-selection.sh" "../../$DST_SETTINGS" \

@@ -27,7 +27,7 @@ main = do
   -- read and write
   let [filePath, subsmp_ratio_str, rnd_seed_str] = args
       outputFilePath = dropExtension (takeBaseName filePath) ++
-                       "_subsmp_ratio_" ++ subsmp_ratio_str ++
+                       "_ss_ratio_" ++ subsmp_ratio_str ++
                        "_rnd_seed_" ++ rnd_seed_str ++
                        takeExtension filePath
       subsmp_ratio = read subsmp_ratio_str :: Float
