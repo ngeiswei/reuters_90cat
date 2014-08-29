@@ -7,7 +7,7 @@ import Data.Text.IO (hGetLine, hPutStrLn)
 import Control.Monad (unless, when, forM_)
 
 import System.Random (mkStdGen, randoms)
-import System.FilePath (dropExtension, takeExtension)
+import System.FilePath (dropExtension, takeBaseName, takeExtension)
 import System.Environment (getArgs, getProgName)
 import System.Exit (exitFailure, exitSuccess)
 import System.IO (openFile, hClose, hIsEOF, IOMode(ReadMode), IOMode(WriteMode))
@@ -26,7 +26,7 @@ main = do
   -- Parse arguments, initialize random generator and open the files to
   -- read and write
   let [filePath, subsmp_ratio_str, rnd_seed_str] = args
-      outputFilePath = dropExtension filePath ++
+      outputFilePath = dropExtension (takeBaseName filePath) ++
                        "_subsmp_ratio_" ++ subsmp_ratio_str ++
                        "_rnd_seed_" ++ rnd_seed_str ++
                        takeExtension filePath
