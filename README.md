@@ -7,7 +7,7 @@ archive.
 Requirements
 ------------
 
-* git
+* Git
 * Haskell
 * MOSES
 
