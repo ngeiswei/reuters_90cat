@@ -113,6 +113,7 @@ mkCat2Words filePath = do
   return (MMap.fromList (Data.List.concat catStemmedSets))
 
 -- Remove current or parent directories from a list of directories
+delCPDirs :: [FilePath] -> [FilePath]
 delCPDirs dirs = delete (".." :: FilePath) (delete ("." :: FilePath) dirs)
 
 -- Take a category directory and return a list of pairs (category,
@@ -126,8 +127,8 @@ stemCategory catFilePath = do
       category = pack (takeFileName catFilePath)
       msgFullPaths = map mkfullpath messages
       catStemFile filePath = do
-        words <- stemFile filePath
-        return (category, words)
+        stemmedWords <- stemFile filePath
+        return (category, stemmedWords)
   sequence (map catStemFile msgFullPaths)
 
 -- Take a non-directory file and return a multiset of stemmed words in
@@ -158,10 +159,10 @@ selectWords cat2words = MSet.foldOccur op Set.empty allwords
 -- the content.
 mkCSV :: Text -> Set.Set Text -> Cat2Words -> [[Text]]
 mkCSV targetCat selWords cat2words = header : csvrows
-  where selWordList = Set.toList selWords
-        header = (pack "target") : selWordList
-        op category words rows = mkCSVRow category targetCat words selWordList
-                                 : rows
+  where selWordLst = Set.toList selWords
+        header = (pack "target") : selWordLst
+        op category msgWords rows = mkCSVRow category targetCat msgWords selWordLst
+                                    : rows
         csvrows = MMap.foldrWithKey op [] cat2words
 
 -- Turn a Bool into a binary format Text
@@ -175,9 +176,9 @@ bool2Text True = pack "1"
 -- "1", "0" otherwise. Then if the word matches the word in the word
 -- list, place "1" its count is above 0, "0" otherwise.
 mkCSVRow :: Text -> Text -> (MSet.MultiSet Text) -> [Text] -> [Text]
-mkCSVRow category targetCat words wordList = catValue : wordValues
+mkCSVRow category targetCat msgWords wordList = catValue : wordValues
   where catValue = bool2Text (category == targetCat)
-        wordValues = map (\k -> bool2Text (MSet.member k words)) wordList
+        wordValues = map (\k -> bool2Text (MSet.member k msgWords)) wordList
 
 -- Takes a message, stem all words, remove the junk and put it to
 -- lower case, and return that list of words (including duplicates).
