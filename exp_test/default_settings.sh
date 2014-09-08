@@ -12,13 +12,13 @@
 # there.
 
 # Skip dataset generation
-skip_dataset_generation=true
+skip_dataset_generation=false
 
 # Skip subsampling
-skip_subsampling=true
+skip_subsampling=false
 
 # Skip feature selection
-skip_feature_selection=true
+skip_feature_selection=false
 
 # Skip MOSES learning
 skip_learning=false
