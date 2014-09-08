@@ -80,9 +80,11 @@ for cat in $categories; do
             warnEcho "Skip learning"
         fi
 
-        # Evalute the population on test
+        # Evaluate the population on test
+        MODELS="$(chg_ext "$FTF" moses)"
+        TEST_FILE="../../test_cocoa.csv"
         infoEcho "Evaluate the model population on test (TODO)"
-        # TODO
+        "$PROG_DIR/analyze.sh" "../../$DST_SETTINGS" "$MODELS" "$TEST_FILE"
 
         ((++rnd_seed))
 
