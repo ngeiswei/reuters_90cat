@@ -1,7 +1,7 @@
 #!/bin/bash
 
 set -u
-# set -x
+set -x
 
 if [[ $# != 1 ]]; then
     echo "Usage: $0 SETTINGS_FILE"
@@ -40,7 +40,7 @@ for cat in $categories; do
     cd $cat
     if [[ $skip_dataset_generation == false ]]; then
         infoEcho "Parse Reuters90 and create train and test CSV files for $cat"
-        "$PROG_DIR/parse_reuters_archive.hs" \
+        "$PROG_DIR/parse_reuters_archive" \
             "$PROG_DIR/Reuters21578-Apte-90Cat" $cat
     else
         warnEcho "Skip parse Reuters90"
@@ -54,14 +54,14 @@ for cat in $categories; do
         # Subsample the training file
         if [[ $skip_subsampling == false ]]; then
             infoEcho "Subsample training CSV file (subsample ratio = $ss_ratio)"
-            "$PROG_DIR/subsample.hs" "../train_$cat.csv" $ss_ratio $rnd_seed
+            "$PROG_DIR/subsample" "../training_$cat.csv" $ss_ratio $rnd_seed
         else
             warnEcho "Skip subsample training CSV file"
         fi
 
         # Select the most important features
         # Define training file to be passed to feature selection
-        TF=train_${cat}_ss_ratio_${ss_ratio}_rnd_seed_${rnd_seed}.csv
+        TF=training_${cat}_ss_ratio_${ss_ratio}_rnd_seed_${rnd_seed}.csv
         if [[ $skip_feature_selection == false ]]; then
             infoEcho "Run pre-feature selection on $TF"
             "$PROG_DIR/feature-selection.sh" "../../$DST_SETTINGS" \
