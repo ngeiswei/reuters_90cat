@@ -48,3 +48,19 @@ hr2i() {
     local val=${val/K/000}
     echo $val
 }
+
+#############
+# Constants #
+#############
+
+# This is a horrible way to regex float, it give way to many false
+# positives but let's start with that
+readonly float_re='[0-9.Ee+-]+'
+
+# Regex to capture the score components of a composite score output
+# 1. non penalized score
+# 2. penalized score
+# 3. complexity
+# 4. complexity penalty
+# 5. diversity penalty
+readonly composite_score_re="\[score=($float_re), penalized score=($float_re), complexity=([0-9]+), complexity penalty=($float_re), diversity penalty=($float_re)\]"
