@@ -14,6 +14,8 @@ fi
 
 PROG_PATH="$(readlink -f "$0")"
 PROG_DIR="$(dirname "$PROG_PATH")"
+ARCHIVE_DIR="$PROG_DIR/Reuters21578-Apte-90Cat"
+SRC_DIR="$PROG_DIR/src"
 
 ########
 # Main #
@@ -36,25 +38,24 @@ cp "$SRC_SETTINGS" "$DST_SETTINGS"
 
 rnd_seed=$init_rnd_seed
 for cat in $categories; do
-    mkdir $cat
-    cd $cat
+    mkdir "$cat"
+    cd "$cat"
     if [[ $skip_dataset_generation == false ]]; then
         infoEcho "Parse Reuters90 and create train and test CSV files for $cat"
-        "$PROG_DIR/parse_reuters_archive" \
-            "$PROG_DIR/Reuters21578-Apte-90Cat" $cat
+        "$SRC_DIR/parse_reuters_archive" "$ARCHIVE_DIR" "$cat"
     else
         warnEcho "Skip parse Reuters90"
     fi
 
     for ss_ratio in ${subsmp_ratios[@]}; do
-        SUBSMP_DIR=ss_ratio_$ss_ratio
+        SUBSMP_DIR="ss_ratio_$ss_ratio"
         mkdir "$SUBSMP_DIR"
         cd "$SUBSMP_DIR"
 
         # Subsample the training file
         if [[ $skip_subsampling == false ]]; then
             infoEcho "Subsample training CSV file (subsample ratio = $ss_ratio)"
-            "$PROG_DIR/subsample" "../training_$cat.csv" $ss_ratio $rnd_seed
+            "$SRC_DIR/subsample" "../training_$cat.csv" $ss_ratio $rnd_seed
         else
             warnEcho "Skip subsample training CSV file"
         fi
@@ -82,7 +83,7 @@ for cat in $categories; do
 
         # Evaluate the population on test
         MODELS="$(chg_ext "$FTF" moses)"
-        TEST_FILE="../../test_cocoa.csv"
+        TEST_FILE="../test_$cat.csv"
         infoEcho "Evaluate the model population on test (TODO)"
         "$PROG_DIR/analyze.sh" "../../$DST_SETTINGS" "$MODELS" "$TEST_FILE"
 

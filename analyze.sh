@@ -41,9 +41,9 @@ EVAL_OUTPUT="test.moses"
 
 set -x
 
-eval-candidate-performance \
-    -i "TEST_DATASET" \
+eval-candidate \
+    -i "$TEST_DATASET" \
     -C "$MODELS" \
-    -H $fitness_type \
+    -H $fitness_type > "$EVAL_OUTPUT"
 
 set +x

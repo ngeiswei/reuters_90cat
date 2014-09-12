@@ -34,11 +34,11 @@ Instructions
     ./conver_to_utf-8.sh
     ```
 
-4. Compile the Haskell programs
+4. Compile the programs
 
    ```
-   ghc parse_reuters_archive.hs -O2
-   ghc subsample.hs -O2
+   ghc src/parse_reuters_archive.hs -O2
+   ghc src/subsample.hs -O2
    ```
 
 5. Configure the settings of an experiment
