@@ -49,6 +49,11 @@ hr2i() {
     echo $val
 }
 
+# Calculate mean performance given a stream of score models
+mean() {
+    cut -d' ' -f1 | grep -v nan | stats | grep mean | tr -d ' ' | cut -d: -f2
+}
+
 #############
 # Constants #
 #############
