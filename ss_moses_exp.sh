@@ -92,5 +92,18 @@ for cat in $categories; do
         cd ..
     done
 
+    # Analyze the results. Output a CSV file relating ss_ratio
+    # with train and test performances
+    PERF_FILE=performances.csv
+    header="ss_ratio,training,test"
+    echo "$header" > "$PERF_FILE"
+    for ss_ratio in ${subsmp_ratios[@]}; do
+        exp_dir=ss_ratio_$ss_ratio
+        avg_train=$(cat $exp_dir/training.moses | mean)
+        avg_test=$(cat $exp_dir/test.moses | mean)
+        content="$ss_ratio,$avg_train,$avg_test"
+        echo "$content" >> "$PERF_FILE"
+    done
+
     cd ..
 done

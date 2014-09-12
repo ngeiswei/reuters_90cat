@@ -22,7 +22,7 @@ RND_SEED="$3"
 . "$PROG_DIR/common.sh"
 
 MOSES_LOG="$(chg_ext "$TRAIN_FILE" log)"
-MOSES_OUTPUT="$(chg_ext "$TRAIN_FILE" moses)"
+MOSES_OUTPUT=training.moses
 
 ########
 # Main #
