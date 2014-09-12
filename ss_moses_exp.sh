@@ -84,8 +84,8 @@ for cat in $categories; do
         # Evaluate the population on test
         MODELS="$(chg_ext "$FTF" moses)"
         TEST_FILE="../test_$cat.csv"
-        infoEcho "Evaluate the model population on test (TODO)"
-        "$PROG_DIR/analyze.sh" "../../$DST_SETTINGS" "$MODELS" "$TEST_FILE"
+        infoEcho "Evaluate the model population on test"
+        "$PROG_DIR/evaluate.sh" "../../$DST_SETTINGS" "$MODELS" "$TEST_FILE"
 
         ((++rnd_seed))
 
