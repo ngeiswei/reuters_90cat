@@ -10,6 +10,7 @@ Requirements
 * Git
 * Haskell
 * MOSES
+* stats (http://web.cs.wpi.edu/~claypool/misc/stats/stats.html)
 
 Instructions
 ------------
@@ -31,7 +32,7 @@ Instructions
 3. Convert the archive into utf-8 format
 
     ```
-    ./conver_to_utf-8.sh
+    ./convert_to_utf-8.sh
     ```
 
 4. Compile the programs
