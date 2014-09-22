@@ -82,10 +82,10 @@ for cat in $categories; do
         fi
 
         # Evaluate the population on test
-        MODELS="$(chg_ext "$FTF" moses)"
+        MOSES_OUTPUT=training.moses
         TEST_FILE="../test_$cat.csv"
         infoEcho "Evaluate the model population on test"
-        "$PROG_DIR/evaluate.sh" "../../$DST_SETTINGS" "$MODELS" "$TEST_FILE"
+        "$PROG_DIR/evaluate.sh" "../../$DST_SETTINGS" "$MOSES_OUTPUT" "$TEST_FILE"
 
         ((++rnd_seed))
 
