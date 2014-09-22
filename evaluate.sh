@@ -44,6 +44,7 @@ set -x
 eval-candidate \
     -i "$TEST_DATASET" \
     -C "$MODELS" \
+    -W 1 \
     -H $fitness_type > "$EVAL_OUTPUT"
 
 set +x
