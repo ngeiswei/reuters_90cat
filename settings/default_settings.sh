@@ -35,7 +35,7 @@ init_rnd_seed=1
 jobs=4
 
 # Maximum number of candidates output by MOSES
-max_candidates=30
+max_candidates=3
 
 # Log level: info, debug (default) or fine
 log_level=debug
@@ -181,4 +181,4 @@ categories=(cocoa)
 
 # Sequence of subsampling ratios to apply on the training dataset. The
 # lower the subsampling ratio, the higher the propensity to overfit.
-subsmp_ratios=(0.{1..9})
+subsmp_ratios=(0.01 0.05 0.1 0.5 1)
