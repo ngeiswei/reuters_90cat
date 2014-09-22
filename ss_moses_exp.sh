@@ -1,7 +1,7 @@
 #!/bin/bash
 
 set -u
-set -x
+# set -x
 
 if [[ $# != 1 ]]; then
     echo "Usage: $0 SETTINGS_FILE"
@@ -24,13 +24,13 @@ SRC_DIR="$PROG_DIR/src"
 # Source common contants and functions
 . "$PROG_DIR/common.sh"
 
-# copy the setting file to the current directory so that the original
+# Copy the setting file to the current directory so that the original
 # setting file can be modified during the experiment
-infoEcho "Copy the settings file to the experiment directory"
 if [[ $# == 1 ]]; then
     SRC_SETTINGS="$(readlink -f "$1")"
     DST_SETTINGS="$(basename "$1")"
 fi
+infoEcho "Copy the settings file $SRC_SETTINGS to current directory"
 cp "$SRC_SETTINGS" "$DST_SETTINGS"
 
 # Source settings
