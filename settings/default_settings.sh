@@ -27,7 +27,7 @@ skip_learning=false
 # Experiment parameters #
 #########################
 
-# Initial random see (then the random is incremented for each
+# Initial random see (then the random seed is incremented for each
 # experiment of the series)
 init_rnd_seed=1
 
@@ -38,7 +38,7 @@ jobs=4
 max_candidates=3
 
 # Log level: info, debug (default) or fine
-log_level=debug
+log_level=fine
 
 ###############################
 # Fitness function parameters #
@@ -54,7 +54,7 @@ fitness_type=f_one
 ####################################
 
 # Number of features to be selected
-nfeats=500
+nfeats=50
 
 # Parameters for inc feature selection algorithm. Level of redundancy
 # to discard, 0 means all redundant features are kept, 1 means even
@@ -177,8 +177,9 @@ ss_tanimoto_geometric_mean_threshold=1
 ####################################
 
 # List of categories to classify
-categories=(cocoa)
+categories=(cocoa interest trade)
 
 # Sequence of subsampling ratios to apply on the training dataset. The
 # lower the subsampling ratio, the higher the propensity to overfit.
-subsmp_ratios=(0.01 0.05 0.1 0.5 1)
+# subsmp_ratios=(0.01 0.05 0.1 0.5 1)
+subsmp_ratios=(0.01 0.5)
