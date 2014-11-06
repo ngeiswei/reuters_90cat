@@ -8,7 +8,7 @@ if [[ $# != 1 ]]; then
 fi
 
 set -u
-# set -x
+set -x
 
 #############
 # Constants #
@@ -21,7 +21,8 @@ PROG_DIR="$(dirname "$PROG_PATH")"
 variable_parameter=ss_tanimoto_geometric_mean_threshold
 
 # Values of the parameter to vary
-values=(0.{1..9} 1)
+# values=(0.{1..9} 1)
+values=(0.5 1)
 
 ########
 # Main #
@@ -40,6 +41,9 @@ infoEcho "Copy the settings file $SRC_SETTINGS to current directory"
 cp "$SRC_SETTINGS" "$DST_SETTINGS"
 
 # Run experiment series
+cross_exp_file=cross_exp_performances.csv
+header="$variable_parameter,category,ss_ratio,training,test"
+echo "$header" > "$cross_exp_file"
 for v in ${values[@]}; do
     infoEcho "Build and run experiment $variable_parameter = $v"
 
@@ -54,4 +58,15 @@ for v in ${values[@]}; do
     # Run subsampling experiments
     $PROG_DIR/ss_moses_exp.sh "../$DST_SETTINGS"
     cd ..
+
+    # Cross experiments analysis
+    exp_perf_file="$exp_dir/cross_category_performances.csv"
+    N=$(($(wc -l < $exp_perf_file) - 1))
+    paste -d, <(printf "$v\n%.0s" $(seq 1 $N)) <(tail -n +2 $exp_perf_file) \
+        >> $cross_exp_file
 done
+
+# # Plot the results
+# for v in ${values[@]}; do
+    
+# done
