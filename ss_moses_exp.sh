@@ -37,7 +37,11 @@ cp "$SRC_SETTINGS" "$DST_SETTINGS"
 . "$DST_SETTINGS"
 
 rnd_seed=$init_rnd_seed
-for cat in $categories; do
+
+# Map sample, category and ss_ratio to performance
+declare -A moses_perf
+
+for cat in ${categories[@]}; do
     mkdir "$cat"
     cd "$cat"
     if [[ $skip_dataset_generation == false ]]; then
@@ -92,18 +96,37 @@ for cat in $categories; do
         cd ..
     done
 
-    # Analyze the results. Output a CSV file relating ss_ratio
-    # with train and test performances
+    # Analyze the results for a certain category. Output a CSV file
+    # relating ss_ratio with train and test performances
     PERF_FILE=performances.csv
     header="ss_ratio,training,test"
     echo "$header" > "$PERF_FILE"
     for ss_ratio in ${subsmp_ratios[@]}; do
         exp_dir=ss_ratio_$ss_ratio
-        avg_train=$(cat $exp_dir/training.moses | mean)
-        avg_test=$(cat $exp_dir/test.moses | mean)
-        content="$ss_ratio,$avg_train,$avg_test"
+        moses_perf[train,$cat,$ss_ratio]=$(cat $exp_dir/training.moses | cut -d' ' -f1 | mean)
+        moses_perf[test,$cat,$ss_ratio]=$(cat $exp_dir/test.moses | cut -d' ' -f1 | mean)
+        content="$ss_ratio,${moses_perf[train,$cat,$ss_ratio]},${moses_perf[test,$cat,$ss_ratio]}"
         echo "$content" >> "$PERF_FILE"
     done
 
     cd ..
+done
+
+# Analyze the results across categories. Output a CSV file, adding
+# averaging across categories
+PERF_FILE=cross_category_performances.csv
+header="category,ss_ratio,training,test"
+echo "$header" > "$PERF_FILE"
+for cat in ${categories[@]}; do
+    for ss_ratio in ${subsmp_ratios[@]}; do
+        exp_dir=ss_ratio_$ss_ratio
+        content="$cat,$ss_ratio,${moses_perf[train,$cat,$ss_ratio]},${moses_perf[test,$cat,$ss_ratio]}"
+        echo "$content" >> "$PERF_FILE"
+    done
+done
+# Add the average across categories
+for ss_ratio in ${subsmp_ratios[@]}; do
+    cross_cat_train_perf=$(for cat in ${categories[@]}; do echo "${moses_perf[train,$cat,$ss_ratio]}"; done | mean)
+    cross_cat_test_perf=$(for cat in ${categories[@]}; do echo "${moses_perf[test,$cat,$ss_ratio]}"; done | mean)
+    echo "avg,$ss_ratio,$cross_cat_train_perf,$cross_cat_test_perf" >> "$PERF_FILE"
 done
