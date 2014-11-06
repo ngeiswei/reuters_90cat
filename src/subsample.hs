@@ -4,7 +4,7 @@
 
 import Data.Text.IO (hGetLine, hPutStrLn)
 
-import Control.Monad (unless, when, forM_)
+import Control.Monad (when, forM_)
 
 import System.Random (mkStdGen, randoms)
 import System.FilePath (dropExtension, takeBaseName, takeExtension)
