@@ -36,6 +36,8 @@ moses \
     -j $jobs \
     --min-pool $jobs \
     -H $fitness_type \
+    -q $min_recall \
+    -Q $alpha \
     --complexity-ratio $complexity_ratio \
     -m $(hr2i $evals) \
     -M $candidates_per_deme \

@@ -47,7 +47,15 @@ log_level=fine
 # Fitness function type. Supported types are
 #
 # f_one
-fitness_type=f_one
+#
+# prerec
+fitness_type=prerec
+
+# Used for prerec
+min_recall=0.5
+
+# Hardness of the constraint to keep the recall over min_recall
+alpha=1
 
 ####################################
 # Pre-feature selection parameters #
