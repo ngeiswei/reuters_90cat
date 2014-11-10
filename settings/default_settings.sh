@@ -177,9 +177,9 @@ ss_tanimoto_geometric_mean_threshold=1
 ####################################
 
 # List of categories to classify
-categories=(cocoa interest trade)
+categories=(trade)
 
 # Sequence of subsampling ratios to apply on the training dataset. The
 # lower the subsampling ratio, the higher the propensity to overfit.
 # subsmp_ratios=(0.01 0.05 0.1 0.5 1)
-subsmp_ratios=(0.01 0.5)
+subsmp_ratios=(0.01 0.1 0.5)
