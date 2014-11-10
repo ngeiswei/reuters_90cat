@@ -90,7 +90,7 @@ for smp in train test; do
         column=4
     fi
     cat <<EOF > "$smp.gnuplot"
-set terminal pngcairo size 800,600 enhanced font 'Verdana,10'
+set terminal pngcairo size 800,600 noenhanced font 'Verdana,10'
 set output "plot_${smp}.png"
 set title "Performance on $smp w.r.t. subsample training ratio"
 set xlabel "Subsample training ratio"
@@ -98,7 +98,7 @@ set ylabel "Performance"
 EOF
     PLOT_CMD="plot"
     for v in ${values[@]}; do
-        PLOT_CMD+=" \"${file_for_plot[$v]}\" u 3:$column t \"$v\" w lines,"
+        PLOT_CMD+=" \"${file_for_plot[$v]}\" u 2:$column t \"$variable_parameter=$v\" w lines,"
     done
     echo "$PLOT_CMD" >> "$smp.gnuplot"
 
