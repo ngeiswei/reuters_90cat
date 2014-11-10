@@ -22,7 +22,7 @@ variable_parameter=ss_tanimoto_geometric_mean_threshold
 
 # Values of the parameter to vary
 # values=(0.{1..9} 1)
-values=(0.5 1)
+values=(0.1 1)
 
 ########
 # Main #
@@ -42,7 +42,7 @@ cp "$SRC_SETTINGS" "$DST_SETTINGS"
 
 # Run experiment series
 cross_exp_file=cross_exp_performances.csv
-header="$variable_parameter,category,ss_ratio,training,test"
+header="$variable_parameter,category,ss_train_ratio,training,test"
 echo "$header" > "$cross_exp_file"
 for v in ${values[@]}; do
     infoEcho "Build and run experiment $variable_parameter = $v"
@@ -66,7 +66,42 @@ for v in ${values[@]}; do
         >> $cross_exp_file
 done
 
-# # Plot the results
-# for v in ${values[@]}; do
-    
-# done
+##############################
+# Cross experiments analysis #
+##############################
+
+infoEcho "Plot the results"
+
+# Create dat files for gnuplot
+declare -A file_for_plot
+for v in ${values[@]}; do
+    exp_dir=${variable_parameter}_$v
+
+    file_for_plot[$v]=${variable_parameter}_${v}.dat
+    grep avg $exp_dir/cross_category_performances.csv | column -s',' -t \
+        > ${file_for_plot[$v]}
+done
+
+# Create plot scripts and plots
+for smp in train test; do
+    if [[ $smp == train ]]; then
+        column=3
+    else
+        column=4
+    fi
+    cat <<EOF > "$smp.gnuplot"
+set terminal pngcairo size 800,600 enhanced font 'Verdana,10'
+set output "plot_${smp}.png"
+set title "Performance on $smp w.r.t. subsample training ratio"
+set xlabel "Subsample training ratio"
+set ylabel "Performance"
+EOF
+    PLOT_CMD="plot"
+    for v in ${values[@]}; do
+        PLOT_CMD+=" \"${file_for_plot[$v]}\" u 3:$column t \"$v\" w lines,"
+    done
+    echo "$PLOT_CMD" >> "$smp.gnuplot"
+
+    # Plot
+    gnuplot "$smp.gnuplot"
+done
