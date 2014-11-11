@@ -41,9 +41,6 @@ infoEcho "Copy the settings file $SRC_SETTINGS to current directory"
 cp "$SRC_SETTINGS" "$DST_SETTINGS"
 
 # Run experiment series
-cross_exp_file=cross_exp_performances.csv
-header="$variable_parameter,category,ss_train_ratio,training,test"
-echo "$header" > "$cross_exp_file"
 for v in ${values[@]}; do
     infoEcho "Build and run experiment $variable_parameter = $v"
 
@@ -58,12 +55,6 @@ for v in ${values[@]}; do
     # Run subsampling experiments
     $PRG_DIR/ss_moses_exp.sh "../$DST_SETTINGS"
     cd ..
-
-    # Cross experiments analysis
-    exp_perf_file="$exp_dir/cross_category_performances.csv"
-    N=$(($(wc -l < $exp_perf_file) - 1))
-    paste -d, <(printf "$v\n%.0s" $(seq 1 $N)) <(tail -n +2 $exp_perf_file) \
-        >> $cross_exp_file
 done
 
 ##############################
@@ -85,9 +76,9 @@ done
 # Create plot scripts and plots
 for smp in train test; do
     if [[ $smp == train ]]; then
-        column=3
-    else
         column=4
+    else
+        column=5
     fi
     cat <<EOF > "$smp.gnuplot"
 set terminal pngcairo size 800,600 noenhanced font 'Verdana,10'
@@ -98,7 +89,7 @@ set ylabel "Performance"
 EOF
     PLOT_CMD="plot"
     for v in ${values[@]}; do
-        PLOT_CMD+=" \"${file_for_plot[$v]}\" u 2:$column t \"$variable_parameter=$v\" w lines,"
+        PLOT_CMD+=" \"${file_for_plot[$v]}\" u 3:$column t \"$variable_parameter=$v\" w lines,"
     done
     echo "$PLOT_CMD" >> "$smp.gnuplot"
 

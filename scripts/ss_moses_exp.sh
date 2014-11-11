@@ -53,81 +53,90 @@ for cat in ${categories[@]}; do
     fi
 
     for ss_ratio in ${subsmp_ratios[@]}; do
-        SUBSMP_DIR="ss_ratio_$ss_ratio"
-        mkdir "$SUBSMP_DIR"
-        cd "$SUBSMP_DIR"
+        for rand_seed_idx in $(seq 1 $rand_seeds_per_exp); do
+            SUBSMP_DIR="ss_ratio_${ss_ratio}_rand_seed_idx_${rand_seed_idx}"
+            mkdir "$SUBSMP_DIR"
+            cd "$SUBSMP_DIR"
 
-        # Subsample the training file
-        if [[ $skip_subsampling == false ]]; then
-            infoEcho "Subsample training CSV file (subsample ratio = $ss_ratio)"
-            "$SRC_DIR/subsample" "../training_$cat.csv" $ss_ratio $rnd_seed
-        else
-            warnEcho "Skip subsample training CSV file"
-        fi
+            # Subsample the training file
+            if [[ $skip_subsampling == false ]]; then
+                infoEcho "Subsample training CSV file (subsample ratio = $ss_ratio)"
+                "$SRC_DIR/subsample" "../training_$cat.csv" $ss_ratio $rnd_seed
+            else
+                warnEcho "Skip subsample training CSV file"
+            fi
 
-        # Select the most important features
-        # Define training file to be passed to feature selection
-        TF=training_${cat}_ss_ratio_${ss_ratio}_rnd_seed_${rnd_seed}.csv
-        if [[ $skip_feature_selection == false ]]; then
-            infoEcho "Run pre-feature selection on $TF"
-            "$PRG_DIR/feature-selection.sh" "../../$DST_SETTINGS" \
-                "$TF" "$rnd_seed"
-        else
-            warnEcho "Skip feature selection"
-        fi
+            # Select the most important features
+            # Define training file to be passed to feature selection
+            TF=training_${cat}_ss_ratio_${ss_ratio}_rnd_seed_${rnd_seed}.csv
+            if [[ $skip_feature_selection == false ]]; then
+                infoEcho "Run pre-feature selection on $TF"
+                "$PRG_DIR/feature-selection.sh" "../../$DST_SETTINGS" \
+                    "$TF" "$rnd_seed"
+            else
+                warnEcho "Skip feature selection"
+            fi
 
-        # Run MOSES
-        # Define filtered training file to be passed to MOSES
-        FTF=filtered_$TF
-        if [[ $skip_learning == false ]]; then
-            infoEcho "Run subsample MOSES on the subsampled training set"
-            "$PRG_DIR/moses.sh" "../../$DST_SETTINGS" "$FTF" "$rnd_seed"
-        else
-            warnEcho "Skip learning"
-        fi
+            # Run MOSES
+            # Define filtered training file to be passed to MOSES
+            FTF=filtered_$TF
+            if [[ $skip_learning == false ]]; then
+                infoEcho "Run subsample MOSES on the subsampled training set"
+                "$PRG_DIR/moses.sh" "../../$DST_SETTINGS" "$FTF" "$rnd_seed"
+            else
+                warnEcho "Skip learning"
+            fi
 
-        # Evaluate the population on test
-        MOSES_OUTPUT=training.moses
-        TEST_FILE="../test_$cat.csv"
-        infoEcho "Evaluate the model population on test"
-        "$PRG_DIR/evaluate.sh" "../../$DST_SETTINGS" "$MOSES_OUTPUT" "$TEST_FILE"
+            # Evaluate the population on test
+            MOSES_OUTPUT=training.moses
+            TEST_FILE="../test_$cat.csv"
+            infoEcho "Evaluate the model population on test"
+            "$PRG_DIR/evaluate.sh" \
+                "../../$DST_SETTINGS" \
+                "$MOSES_OUTPUT" \
+                "$TEST_FILE"
 
-        ((++rnd_seed))
+            ((++rnd_seed))
 
-        cd ..
+            cd ..
+        done
     done
 
     # Analyze the results for a certain category. Output a CSV file
     # relating ss_ratio with train and test performances
     PERF_FILE=performances.csv
-    header="ss_ratio,training,test"
+    header="ss_ratio,rand_seed_idx,training,test"
     echo "$header" > "$PERF_FILE"
     for ss_ratio in ${subsmp_ratios[@]}; do
-        exp_dir=ss_ratio_$ss_ratio
-        moses_perf[train,$cat,$ss_ratio]=$(cat $exp_dir/training.moses | cut -d' ' -f1 | mean)
-        moses_perf[test,$cat,$ss_ratio]=$(cat $exp_dir/test.moses | cut -d' ' -f1 | mean)
-        content="$ss_ratio,${moses_perf[train,$cat,$ss_ratio]},${moses_perf[test,$cat,$ss_ratio]}"
-        echo "$content" >> "$PERF_FILE"
+        for rand_seed_idx in $(seq 1 $rand_seeds_per_exp); do
+            exp_dir=ss_ratio_${ss_ratio}_rand_seed_idx_${rand_seed_idx}
+            moses_perf[train,$cat,$ss_ratio,$rand_seed_idx]=$(cat $exp_dir/training.moses | cut -d' ' -f1 | mean)
+            moses_perf[test,$cat,$ss_ratio,$rand_seed_idx]=$(cat $exp_dir/test.moses | cut -d' ' -f1 | mean)
+            content="$ss_ratio,$rand_seed_idx,${moses_perf[train,$cat,$ss_ratio,$rand_seed_idx]},${moses_perf[test,$cat,$ss_ratio,$rand_seed_idx]}"
+            echo "$content" >> "$PERF_FILE"
+        done
     done
 
     cd ..
 done
 
-# Analyze the results across categories. Output a CSV file, adding
-# averaging across categories
+# Analyze the results across categories and random seeds. Output a CSV
+# file, adding averaging across categories and random seeds
 PERF_FILE=cross_category_performances.csv
-header="category,ss_ratio,training,test"
+header="category,rand_seed_idx,ss_ratio,training,test"
 echo "$header" > "$PERF_FILE"
 for cat in ${categories[@]}; do
     for ss_ratio in ${subsmp_ratios[@]}; do
-        exp_dir=ss_ratio_$ss_ratio
-        content="$cat,$ss_ratio,${moses_perf[train,$cat,$ss_ratio]},${moses_perf[test,$cat,$ss_ratio]}"
-        echo "$content" >> "$PERF_FILE"
+        for rand_seed_idx in $(seq 1 $rand_seeds_per_exp); do
+            exp_dir=ss_ratio_${ss_ratio}_rand_seed_idx_${rand_seed_idx}
+            content="$cat,$rand_seed_idx,$ss_ratio,${moses_perf[train,$cat,$ss_ratio,$rand_seed_idx]},${moses_perf[test,$cat,$ss_ratio,$rand_seed_idx]}"
+            echo "$content" >> "$PERF_FILE"
+        done
     done
 done
-# Add the average across categories
+# Add the average across categories and random seeds
 for ss_ratio in ${subsmp_ratios[@]}; do
-    cross_cat_train_perf=$(for cat in ${categories[@]}; do echo "${moses_perf[train,$cat,$ss_ratio]}"; done | mean)
-    cross_cat_test_perf=$(for cat in ${categories[@]}; do echo "${moses_perf[test,$cat,$ss_ratio]}"; done | mean)
-    echo "avg,$ss_ratio,$cross_cat_train_perf,$cross_cat_test_perf" >> "$PERF_FILE"
+    cross_cat_train_perf=$(for cat in ${categories[@]}; do for rand_seed_idx in $(seq 1 $rand_seeds_per_exp); do echo "${moses_perf[train,$cat,$ss_ratio,$rand_seed_idx]}"; done; done | mean)
+    cross_cat_test_perf=$(for cat in ${categories[@]}; do for rand_seed_idx in $(seq 1 $rand_seeds_per_exp); do echo "${moses_perf[test,$cat,$ss_ratio,$rand_seed_idx]}"; done; done | mean)
+    echo "avg,avg,$ss_ratio,$cross_cat_train_perf,$cross_cat_test_perf" >> "$PERF_FILE"
 done
