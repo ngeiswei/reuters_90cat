@@ -11,8 +11,8 @@ fi
 # Constants #
 #############
 
-PROG_PATH="$(readlink -f "$0")"
-PROG_DIR="$(dirname "$PROG_PATH")"
+PRG_PATH="$(readlink -f "$0")"
+PRG_DIR="$(dirname "$PRG_PATH")"
 SETTINGS="$1"
 MOSES_OUTPUT="$2"
 TEST_DATASET="$3"
@@ -30,7 +30,7 @@ fi
 
 # Source settings and common.sh
 . "$SETTINGS"
-. "$PROG_DIR/common.sh"
+. "$PRG_DIR/common.sh"
 
 ########
 # Main #

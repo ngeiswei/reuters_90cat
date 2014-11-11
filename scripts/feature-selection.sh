@@ -11,15 +11,15 @@ fi
 # Constants #
 #############
 
-PROG_PATH="$(readlink -f "$0")"
-PROG_DIR="$(dirname "$PROG_PATH")"
+PRG_PATH="$(readlink -f "$0")"
+PRG_DIR="$(dirname "$PRG_PATH")"
 SETTINGS="$1"
 TRAIN_FILE="$2"
 RND_SEED="$3"
 
 # Source settings and common.sh
 . "$SETTINGS"
-. "$PROG_DIR/common.sh"
+. "$PRG_DIR/common.sh"
 
 FS_LOG="feature_selection_$(chg_ext "$TRAIN_FILE" log)"
 FS_OUTPUT="filtered_$TRAIN_FILE"

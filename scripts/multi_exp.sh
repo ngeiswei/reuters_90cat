@@ -14,8 +14,8 @@ set -x
 # Constants #
 #############
 
-PROG_PATH="$(readlink -f "$0")"
-PROG_DIR="$(dirname "$PROG_PATH")"
+PRG_PATH="$(readlink -f "$0")"
+PRG_DIR="$(dirname "$PRG_PATH")"
 
 # Name of the parameter to vary
 variable_parameter=ss_tanimoto_geometric_mean_threshold
@@ -29,7 +29,7 @@ values=(0.1 1)
 ########
 
 # Source common contants and functions
-. "$PROG_DIR/common.sh"
+. "$PRG_DIR/common.sh"
 
 # Copy the setting file to the current directory so that the original
 # setting file can be modified during the experiment
@@ -56,7 +56,7 @@ for v in ${values[@]}; do
     sed -i.bak "s/^$variable_parameter=.\+\$/$variable_parameter=$v/" "../$DST_SETTINGS"
 
     # Run subsampling experiments
-    $PROG_DIR/ss_moses_exp.sh "../$DST_SETTINGS"
+    $PRG_DIR/ss_moses_exp.sh "../$DST_SETTINGS"
     cd ..
 
     # Cross experiments analysis

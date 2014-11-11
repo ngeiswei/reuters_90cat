@@ -12,17 +12,18 @@ fi
 # Constants #
 #############
 
-PROG_PATH="$(readlink -f "$0")"
-PROG_DIR="$(dirname "$PROG_PATH")"
-ARCHIVE_DIR="$PROG_DIR/Reuters21578-Apte-90Cat"
-SRC_DIR="$PROG_DIR/src"
+PRG_PATH="$(readlink -f "$0")"
+PRG_DIR="$(dirname "$PRG_PATH")"
+ROOT_DIR="$PRG_DIR/.."
+ARCHIVE_DIR="$ROOT_DIR/Reuters21578-Apte-90Cat"
+SRC_DIR="$ROOT_DIR/src"
 
 ########
 # Main #
 ########
 
 # Source common contants and functions
-. "$PROG_DIR/common.sh"
+. "$PRG_DIR/common.sh"
 
 # Copy the setting file to the current directory so that the original
 # setting file can be modified during the experiment
@@ -69,7 +70,7 @@ for cat in ${categories[@]}; do
         TF=training_${cat}_ss_ratio_${ss_ratio}_rnd_seed_${rnd_seed}.csv
         if [[ $skip_feature_selection == false ]]; then
             infoEcho "Run pre-feature selection on $TF"
-            "$PROG_DIR/feature-selection.sh" "../../$DST_SETTINGS" \
+            "$PRG_DIR/feature-selection.sh" "../../$DST_SETTINGS" \
                 "$TF" "$rnd_seed"
         else
             warnEcho "Skip feature selection"
@@ -80,7 +81,7 @@ for cat in ${categories[@]}; do
         FTF=filtered_$TF
         if [[ $skip_learning == false ]]; then
             infoEcho "Run subsample MOSES on the subsampled training set"
-            "$PROG_DIR/moses.sh" "../../$DST_SETTINGS" "$FTF" "$rnd_seed"
+            "$PRG_DIR/moses.sh" "../../$DST_SETTINGS" "$FTF" "$rnd_seed"
         else
             warnEcho "Skip learning"
         fi
@@ -89,7 +90,7 @@ for cat in ${categories[@]}; do
         MOSES_OUTPUT=training.moses
         TEST_FILE="../test_$cat.csv"
         infoEcho "Evaluate the model population on test"
-        "$PROG_DIR/evaluate.sh" "../../$DST_SETTINGS" "$MOSES_OUTPUT" "$TEST_FILE"
+        "$PRG_DIR/evaluate.sh" "../../$DST_SETTINGS" "$MOSES_OUTPUT" "$TEST_FILE"
 
         ((++rnd_seed))
 
