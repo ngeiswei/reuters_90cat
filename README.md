@@ -32,7 +32,7 @@ Instructions
 3. Convert the archive into utf-8 format
 
     ```
-    ./convert_to_utf-8.sh
+    ./scripts/convert_to_utf-8.sh
     ```
 
 4. Compile the programs
@@ -43,3 +43,13 @@ Instructions
    ```
 
 5. Configure the settings of an experiment
+
+TODO
+
+6. Run the experiments
+
+   ```
+   mkdir <MY_EXPERIMENT>
+   cd <MY_EXPERIMENT>
+   ../scripts/multi_exp.sh
+   ```
