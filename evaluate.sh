@@ -17,6 +17,17 @@ SETTINGS="$1"
 MOSES_OUTPUT="$2"
 TEST_DATASET="$3"
 
+# Check if those files exist
+if [[ ! -f $SETTINGS ]]; then
+    fatalError "Settings file $SETTINGS does not exist"
+fi
+if [[ ! -f $MOSES_OUTPUT ]]; then
+    fatalError "MOSES output file $MOSES_OUTPUT does not exist"
+fi
+if [[ ! -f $TEST_DATASET ]]; then
+    fatalError "Test data set file $TEST_DATASET does not exist"
+fi
+
 # Source settings and common.sh
 . "$SETTINGS"
 . "$PROG_DIR/common.sh"
