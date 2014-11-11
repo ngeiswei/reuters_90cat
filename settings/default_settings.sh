@@ -38,7 +38,7 @@ jobs=4
 max_candidates=3
 
 # Log level: info, debug (default) or fine
-log_level=fine
+log_level=debug
 
 ###############################
 # Fitness function parameters #
@@ -61,16 +61,42 @@ alpha=1
 # Pre-feature selection parameters #
 ####################################
 
-# Number of features to be selected
-nfeats=50
+# The supported algorithms are
+#
+# simple           Take the top nfeats maximizing the score
+#
+# random           Pick up nfeats randomly
+fs_algo=simple
 
-# Parameters for inc feature selection algorithm. Level of redundancy
-# to discard, 0 means all redundant features are kept, 1 means even
-# the slightliest redudant features are removed. That value does not
-# change the number of features being selected. A value of 0 will make
-# inc feature selection much faster but will retain all redundant
-# features.
-inc_red_thresh=0
+# The supported scoring functions are
+#
+# mi
+fs_scorer=mi
+
+# Number of features to be selected
+fs_nfeats=50
+
+##################################
+# Feature selection within MOSES #
+##################################
+
+# Enable feature selection within MOSES
+enable_fsm=true
+
+# The supported algorithms are
+#
+# simple           Take the top nfeats maximizing the score
+#
+# random           Pick up nfeats randomly
+fsm_algo=random
+
+# The supported scoring functions are
+#
+# mi
+fsm_scorer=mi
+
+# Number of features to be selected
+fsm_nfeats=5
 
 ###########################
 # MOSES search parameters #
@@ -78,7 +104,7 @@ inc_red_thresh=0
 
 # Number of evaluations . You can use K for 1000 and M for 1000000, so
 # for instance 2M will be interpreted as 2000000.
-evals=10K
+evals=50K
 
 # Number of candidates the cache can hold. The larger the cache the
 # faster but the more memory it requires. Like for eval you can use K
@@ -88,7 +114,7 @@ cache_size=500K
 # The number of candidates to keep after searching a deme, a low
 # number will decrease memory and speed up merging, but a too low
 # number will discard too many iteresting candidates.
-candidates_per_deme=500
+candidates_per_deme=50
 
 # Complexity ratio (lower means higher complexity penalty)
 complexity_ratio=1500
@@ -189,5 +215,5 @@ categories=(trade)
 
 # Sequence of subsampling ratios to apply on the training dataset. The
 # lower the subsampling ratio, the higher the propensity to overfit.
-# subsmp_ratios=(0.01 0.05 0.1 0.5 1)
-subsmp_ratios=(0.01 0.1 0.5)
+subsmp_ratios=(0.01 0.1 1)
+# subsmp_ratios=(0.{01..99})

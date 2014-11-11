@@ -21,7 +21,7 @@ RND_SEED="$3"
 . "$SETTINGS"
 . "$PROG_DIR/common.sh"
 
-FS_LOG="$(chg_ext "$TRAIN_FILE" log)"
+FS_LOG="feature_selection_$(chg_ext "$TRAIN_FILE" log)"
 FS_OUTPUT="filtered_$TRAIN_FILE"
 
 ########
@@ -31,13 +31,12 @@ FS_OUTPUT="filtered_$TRAIN_FILE"
 set -x
 
 feature-selection \
-    -a inc \
     -i "$TRAIN_FILE" \
     -o "$FS_OUTPUT" \
     -r $RND_SEED \
-    -C $nfeats \
-    -E 0.00001 \
-    -D $inc_red_thresh \
+    -a $fs_algo \
+    -H $fs_scorer \
+    -C $fs_nfeats \
     -F "$FS_LOG" \
     -j $jobs \
     -l $log_level

@@ -21,7 +21,7 @@ RND_SEED="$3"
 . "$SETTINGS"
 . "$PROG_DIR/common.sh"
 
-MOSES_LOG="$(chg_ext "$TRAIN_FILE" log)"
+MOSES_LOG="moses_$(chg_ext "$TRAIN_FILE" log)"
 MOSES_OUTPUT=training.moses
 
 ########
@@ -53,6 +53,12 @@ moses \
     -D $expand_dst \
     -B $rep_reduct_effort \
     --revisit $revisit \
+    --enable-fs $(bool2bin $enable_fsm) \
+    --fs-target-size $fsm_nfeats \
+    --fs-focus all \
+    --fs-prune-exemplar 1 \
+    --fs-algo $fsm_algo \
+    --fs-scorer $fsm_scorer \
     --ss-n-subsample-demes $ss_demes \
     --ss-n-top-candidates $ss_top_candidates \
     --ss-tanimoto-geometric-mean-threshold $ss_tanimoto_geometric_mean_threshold \
