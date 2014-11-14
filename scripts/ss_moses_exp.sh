@@ -40,7 +40,7 @@ cp "$SRC_SETTINGS" "$DST_SETTINGS"
 rnd_seed=$init_rnd_seed
 
 # Map sample, category and ss_ratio to performance
-declare -A moses_perf
+declare -A moses_perf rand_signal_perf
 
 for cat in ${categories[@]}; do
     mkdir "$cat"
@@ -97,7 +97,7 @@ for cat in ${categories[@]}; do
                 "$MOSES_OUTPUT" \
                 "$TEST_FILE"
 
-            # Evaluate the performance of a random signal
+            # Evaluate the expected performance of a random signal
             infoEcho "Evaluate random signal performances over train and test"
             "$PRG_DIR/evaluate_random_signal.sh" \
                 "../../$DST_SETTINGS" \
@@ -113,14 +113,20 @@ for cat in ${categories[@]}; do
     # Analyze the results for a certain category. Output a CSV file
     # relating ss_ratio with train and test performances
     PERF_FILE=performances.csv
-    header="ss_ratio,rand_seed_idx,training,test"
+    header="ss_ratio,rand_seed_idx,rand_signal_training,rand_signal_test,training,test"
     echo "$header" > "$PERF_FILE"
     for ss_ratio in ${subsmp_ratios[@]}; do
         for rand_seed_idx in $(seq 1 $rand_seeds_per_exp); do
             exp_dir=ss_ratio_${ss_ratio}_rand_seed_idx_${rand_seed_idx}
+            rand_signal_perf[train,$cat,$ss_ratio,$rand_seed_idx]=$(cat $exp_dir/train_rand_signal.moses | cut -d' ' -f1)
+            rand_signal_perf[test,$cat,$ss_ratio,$rand_seed_idx]=$(cat $exp_dir/test_rand_signal.moses | cut -d' ' -f1)
             moses_perf[train,$cat,$ss_ratio,$rand_seed_idx]=$(cat $exp_dir/train.moses | cut -d' ' -f1 | mean)
             moses_perf[test,$cat,$ss_ratio,$rand_seed_idx]=$(cat $exp_dir/test.moses | cut -d' ' -f1 | mean)
-            content="$ss_ratio,$rand_seed_idx,${moses_perf[train,$cat,$ss_ratio,$rand_seed_idx]},${moses_perf[test,$cat,$ss_ratio,$rand_seed_idx]}"
+            content="$ss_ratio,$rand_seed_idx,"
+            content+="${rand_signal_perf[train,$cat,$ss_ratio,$rand_seed_idx]},"
+            content+="${rand_signal_perf[test,$cat,$ss_ratio,$rand_seed_idx]},"
+            content+="${moses_perf[train,$cat,$ss_ratio,$rand_seed_idx]},"
+            content+="${moses_perf[test,$cat,$ss_ratio,$rand_seed_idx]}"
             echo "$content" >> "$PERF_FILE"
         done
     done
@@ -131,20 +137,29 @@ done
 # Analyze the results across categories and random seeds. Output a CSV
 # file, adding averaging across categories and random seeds
 PERF_FILE=cross_category_performances.csv
-header="category,rand_seed_idx,ss_ratio,training,test"
+header="category,rand_seed_idx,ss_ratio,"
+header+="train_rand_signal,test_rand_signal,training,test"
 echo "$header" > "$PERF_FILE"
 for cat in ${categories[@]}; do
     for ss_ratio in ${subsmp_ratios[@]}; do
         for rand_seed_idx in $(seq 1 $rand_seeds_per_exp); do
-            exp_dir=ss_ratio_${ss_ratio}_rand_seed_idx_${rand_seed_idx}
-            content="$cat,$rand_seed_idx,$ss_ratio,${moses_perf[train,$cat,$ss_ratio,$rand_seed_idx]},${moses_perf[test,$cat,$ss_ratio,$rand_seed_idx]}"
+            content="$cat,$rand_seed_idx,$ss_ratio,"
+            content+="${rand_signal_perf[train,$cat,$ss_ratio,$rand_seed_idx]},"
+            content+="${rand_signal_perf[test,$cat,$ss_ratio,$rand_seed_idx]},"
+            content+="${moses_perf[train,$cat,$ss_ratio,$rand_seed_idx]},"
+            content+="${moses_perf[test,$cat,$ss_ratio,$rand_seed_idx]}"
             echo "$content" >> "$PERF_FILE"
         done
     done
 done
 # Add the average across categories and random seeds
 for ss_ratio in ${subsmp_ratios[@]}; do
-    cross_cat_train_perf=$(for cat in ${categories[@]}; do for rand_seed_idx in $(seq 1 $rand_seeds_per_exp); do echo "${moses_perf[train,$cat,$ss_ratio,$rand_seed_idx]}"; done; done | mean)
-    cross_cat_test_perf=$(for cat in ${categories[@]}; do for rand_seed_idx in $(seq 1 $rand_seeds_per_exp); do echo "${moses_perf[test,$cat,$ss_ratio,$rand_seed_idx]}"; done; done | mean)
-    echo "avg,avg,$ss_ratio,$cross_cat_train_perf,$cross_cat_test_perf" >> "$PERF_FILE"
+    avg_train_rand_signal_perf=$(for cat in ${categories[@]}; do for rand_seed_idx in $(seq 1 $rand_seeds_per_exp); do echo "${rand_signal_perf[train,$cat,$ss_ratio,$rand_seed_idx]}"; done; done | mean)
+    avg_test_rand_signal_perf=$(for cat in ${categories[@]}; do for rand_seed_idx in $(seq 1 $rand_seeds_per_exp); do echo "${rand_signal_perf[test,$cat,$ss_ratio,$rand_seed_idx]}"; done; done | mean)
+    avg_train_moses_perf=$(for cat in ${categories[@]}; do for rand_seed_idx in $(seq 1 $rand_seeds_per_exp); do echo "${moses_perf[train,$cat,$ss_ratio,$rand_seed_idx]}"; done; done | mean)
+    avg_test_moses_perf=$(for cat in ${categories[@]}; do for rand_seed_idx in $(seq 1 $rand_seeds_per_exp); do echo "${moses_perf[test,$cat,$ss_ratio,$rand_seed_idx]}"; done; done | mean)
+    content="avg,avg,$ss_ratio,"
+    content+="$avg_train_rand_signal_perf,$avg_test_rand_signal_perf,"
+    content+="$avg_train_moses_perf,$avg_test_moses_perf"
+    echo "$content" >> "$PERF_FILE"
 done

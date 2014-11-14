@@ -22,7 +22,8 @@ variable_parameter=ss_tanimoto_geometric_mean_threshold
 
 # Values of the parameter to vary
 # values=(0.{1..9} 1)
-values=(0.001 0.01 0.1 1)
+# values=(0.001 0.01 0.1 1)
+values=(0.001 1)
 
 ########
 # Main #
@@ -76,10 +77,14 @@ done
 # Create plot scripts and plots
 for smp in train test; do
     if [[ $smp == train ]]; then
-        column=4
+        rand_signal_column=4
+        moses_column=6
     else
-        column=5
+        rand_signal_column=5
+        moses_column=7
     fi
+
+    # Create gnuplot script
     cat <<EOF > "$smp.gnuplot"
 set terminal pngcairo size 800,600 noenhanced font 'Verdana,10'
 set output "plot_${smp}.png"
@@ -87,12 +92,16 @@ set title "Performance on $smp w.r.t. subsample training ratio"
 set xlabel "Subsample training ratio"
 set ylabel "Performance"
 EOF
+    # For plotting MOSES performances
     PLOT_CMD="plot"
     for v in ${values[@]}; do
-        PLOT_CMD+=" \"${file_for_plot[$v]}\" u 3:$column t \"$variable_parameter=$v\" w lines,"
+        PLOT_CMD+=" \"${file_for_plot[$v]}\" u 3:$moses_column t \"$variable_parameter=$v\" w lines,"
     done
-    echo "$PLOT_CMD" >> "$smp.gnuplot"
+
+    # For plotting expected random signal performances
+    PLOT_CMD+=" \"${file_for_plot[$v]}\" u 3:$rand_signal_column t \"expected performance of a random signal\" w lines ls 0"
 
     # Plot
+    echo "$PLOT_CMD" >> "$smp.gnuplot"
     gnuplot "$smp.gnuplot"
 done
