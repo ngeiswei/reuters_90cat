@@ -2,8 +2,8 @@
 
 set -u
 
-if [[ $# != 3 ]]; then
-    echo "Usage: $0 SETTINGS_FILE TRAIN_FILE RND_SEED"
+if [[ $# != 4 ]]; then
+    echo "Usage: $0 SETTINGS_FILE TRAIN_FILE RND_SEED MOSES_OUTPUT"
     exit 1
 fi
 
@@ -16,13 +16,13 @@ PRG_DIR="$(dirname "$PRG_PATH")"
 SETTINGS="$1"
 TRAIN_FILE="$2"
 RND_SEED="$3"
+MOSES_OUTPUT="$4"
 
 # Source settings and common.sh
 . "$SETTINGS"
 . "$PRG_DIR/common.sh"
 
 MOSES_LOG="moses_$(chg_ext "$TRAIN_FILE" log)"
-MOSES_OUTPUT=training.moses
 
 ########
 # Main #

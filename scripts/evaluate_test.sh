@@ -17,6 +17,9 @@ SETTINGS="$1"
 MOSES_OUTPUT="$2"
 TEST_DATASET="$3"
 
+# Source common.sh
+. "$PRG_DIR/common.sh"
+
 # Check if those files exist
 if [[ ! -f $SETTINGS ]]; then
     fatalError "Settings file $SETTINGS does not exist"
@@ -28,9 +31,8 @@ if [[ ! -f $TEST_DATASET ]]; then
     fatalError "Test data set file $TEST_DATASET does not exist"
 fi
 
-# Source settings and common.sh
+# Source settings
 . "$SETTINGS"
-. "$PRG_DIR/common.sh"
 
 ########
 # Main #
@@ -55,6 +57,7 @@ set -x
 eval-candidate \
     -i "$TEST_DATASET" \
     -C "$MODELS" \
+    -Q 0 \
     -W 1 \
     -H $fitness_type > "$EVAL_OUTPUT"
 

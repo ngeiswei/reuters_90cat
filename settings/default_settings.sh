@@ -35,7 +35,7 @@ init_rnd_seed=1
 jobs=4
 
 # Maximum number of candidates output by MOSES
-max_candidates=3
+max_candidates=1
 
 # Log level: info, debug (default) or fine
 log_level=debug
@@ -74,7 +74,7 @@ fs_algo=simple
 fs_scorer=mi
 
 # Number of features to be selected
-fs_nfeats=50
+fs_nfeats=100
 
 ##################################
 # Feature selection within MOSES #
@@ -104,7 +104,7 @@ fsm_nfeats=5
 
 # Number of evaluations . You can use K for 1000 and M for 1000000, so
 # for instance 2M will be interpreted as 2000000.
-evals=50K
+evals=1M
 
 # Number of candidates the cache can hold. The larger the cache the
 # faster but the more memory it requires. Like for eval you can use K
@@ -188,14 +188,14 @@ rep_reduct_effort=2
 
 # Number of times the same exemplar can be revisited (0 means it is
 # visited only once)
-revisit=0
+revisit=-1
 
 ################################
 # Subsampling-MOSES parameters #
 ################################
 
 # Number of ss-demes (if 0 or 1, then it is disabled)
-ss_demes=0
+ss_demes=10
 
 # Number of top candidates to consider for each ss-deme
 ss_top_candidates=1
@@ -220,5 +220,5 @@ rand_seeds_per_exp=2
 
 # Sequence of subsampling ratios to apply on the training dataset. The
 # lower the subsampling ratio, the higher the propensity to overfit.
-subsmp_ratios=(0.01 1)
-# subsmp_ratios=(0.{01..99})
+# subsmp_ratios=(0.01 0.05 0.{1..9} 1)
+subsmp_ratios=(0.01 0.1 1)

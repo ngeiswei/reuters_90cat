@@ -22,7 +22,7 @@ variable_parameter=ss_tanimoto_geometric_mean_threshold
 
 # Values of the parameter to vary
 # values=(0.{1..9} 1)
-values=(0.1 1)
+values=(0.001 0.01 0.1 1)
 
 ########
 # Main #

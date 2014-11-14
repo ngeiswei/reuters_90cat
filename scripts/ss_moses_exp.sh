@@ -68,34 +68,42 @@ for cat in ${categories[@]}; do
 
             # Select the most important features
             # Define training file to be passed to feature selection
-            TF=training_${cat}_ss_ratio_${ss_ratio}_rnd_seed_${rnd_seed}.csv
+            TRAIN_FILE=training_${cat}_ss_ratio_${ss_ratio}_rnd_seed_${rnd_seed}.csv
             if [[ $skip_feature_selection == false ]]; then
-                infoEcho "Run pre-feature selection on $TF"
-                "$PRG_DIR/feature-selection.sh" "../../$DST_SETTINGS" \
-                    "$TF" "$rnd_seed"
+                infoEcho "Run pre-feature selection on $TRAIN_FILE"
+                "$PRG_DIR/feature_selection.sh" "../../$DST_SETTINGS" \
+                    "$TRAIN_FILE" "$rnd_seed"
             else
                 warnEcho "Skip feature selection"
             fi
 
             # Run MOSES
             # Define filtered training file to be passed to MOSES
-            FTF=filtered_$TF
+            FILTERED_TRAIN_FILE=filtered_$TRAIN_FILE
+            MOSES_OUTPUT=train.moses
             if [[ $skip_learning == false ]]; then
                 infoEcho "Run subsample MOSES on the subsampled training set"
-                "$PRG_DIR/moses.sh" "../../$DST_SETTINGS" "$FTF" "$rnd_seed"
+                "$PRG_DIR/moses.sh" "../../$DST_SETTINGS" \
+                    "$FILTERED_TRAIN_FILE" "$rnd_seed" "$MOSES_OUTPUT"
             else
                 warnEcho "Skip learning"
             fi
 
             # Evaluate the population on test
-            MOSES_OUTPUT=training.moses
             TEST_FILE="../test_$cat.csv"
             infoEcho "Evaluate the model population on test"
-            "$PRG_DIR/evaluate.sh" \
+            "$PRG_DIR/evaluate_test.sh" \
                 "../../$DST_SETTINGS" \
                 "$MOSES_OUTPUT" \
                 "$TEST_FILE"
 
+            # Evaluate the performance of a random signal
+            infoEcho "Evaluate the model population on test"
+            "$PRG_DIR/evaluate_random_signal.sh" \
+                "../../$DST_SETTINGS" \
+                "$TRAIN_FILE" \
+                "$TEST_FILE"
+                
             ((++rnd_seed))
 
             cd ..
@@ -110,7 +118,7 @@ for cat in ${categories[@]}; do
     for ss_ratio in ${subsmp_ratios[@]}; do
         for rand_seed_idx in $(seq 1 $rand_seeds_per_exp); do
             exp_dir=ss_ratio_${ss_ratio}_rand_seed_idx_${rand_seed_idx}
-            moses_perf[train,$cat,$ss_ratio,$rand_seed_idx]=$(cat $exp_dir/training.moses | cut -d' ' -f1 | mean)
+            moses_perf[train,$cat,$ss_ratio,$rand_seed_idx]=$(cat $exp_dir/train.moses | cut -d' ' -f1 | mean)
             moses_perf[test,$cat,$ss_ratio,$rand_seed_idx]=$(cat $exp_dir/test.moses | cut -d' ' -f1 | mean)
             content="$ss_ratio,$rand_seed_idx,${moses_perf[train,$cat,$ss_ratio,$rand_seed_idx]},${moses_perf[test,$cat,$ss_ratio,$rand_seed_idx]}"
             echo "$content" >> "$PERF_FILE"
