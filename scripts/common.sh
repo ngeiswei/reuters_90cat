@@ -2,18 +2,23 @@
 # Functions #
 #############
 
+# Output date at a certain format
+my_date() {
+    date --rfc-3339=seconds
+}
+
 # Given an error message, display that error on stderr and exit
 fatalError() {
-    echo "[ERROR] $@" 1>&2
+    echo "[$(my_date)] [ERROR] $@" 1>&2
     exit 1
 }
 
 warnEcho() {
-    echo "[WARN] $@"    
+    echo "[$(my_date)] [WARN] $@"
 }
 
 infoEcho() {
-    echo "[INFO] $@"
+    echo "[$(my_date)] [INFO] $@"
 }
 
 # Change the extension of a file name. The first argument is the file
