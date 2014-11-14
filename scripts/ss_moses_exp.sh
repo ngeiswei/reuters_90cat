@@ -98,7 +98,7 @@ for cat in ${categories[@]}; do
                 "$TEST_FILE"
 
             # Evaluate the performance of a random signal
-            infoEcho "Evaluate the model population on test"
+            infoEcho "Evaluate random signal performances over train and test"
             "$PRG_DIR/evaluate_random_signal.sh" \
                 "../../$DST_SETTINGS" \
                 "$TRAIN_FILE" \
