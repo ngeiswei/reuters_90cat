@@ -8,7 +8,7 @@ if [[ $# != 1 ]]; then
 fi
 
 set -u
-set -x
+# set -x
 
 #############
 # Constants #
@@ -22,8 +22,8 @@ variable_parameter=ss_tanimoto_geometric_mean_threshold
 
 # Values of the parameter to vary
 # values=(0.{1..9} 1)
-# values=(0.001 0.01 0.1 1)
-values=(0.001 1)
+values=(0.0001 0.001 0.01 0.1 0.5 1)
+# values=(0.001 1)
 
 ########
 # Main #
@@ -91,6 +91,8 @@ set output "plot_${smp}.png"
 set title "Performance on $smp w.r.t. subsample training ratio"
 set xlabel "Subsample training ratio"
 set ylabel "Performance"
+set key bottom
+set logscale x
 EOF
     # For plotting MOSES performances
     PLOT_CMD="plot"
