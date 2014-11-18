@@ -39,9 +39,13 @@ cp "$SRC_SETTINGS" "$DST_SETTINGS"
 
 rnd_seed=$init_rnd_seed
 
+# Determine number of experiments
+n_exp=$((${#categories[@]} * ${#subsmp_ratios[@]} * rand_seeds_per_exp))
+
 # Map sample, category and ss_ratio to performance
 declare -A moses_perf rand_signal_perf
 
+i_exp=1
 for cat in ${categories[@]}; do
     mkdir "$cat"
     cd "$cat"
@@ -58,9 +62,11 @@ for cat in ${categories[@]}; do
             mkdir "$SUBSMP_DIR"
             cd "$SUBSMP_DIR"
 
+            infoEcho "Run experiment ss_ratio = $ss_ratio, rand_seed_idx = $rand_seed_idx ($i_exp/$n_exp)"
+
             # Subsample the training file
             if [[ $skip_subsampling == false ]]; then
-                infoEcho "Subsample training CSV file (subsample ratio = $ss_ratio)"
+                infoEcho "Subsample training CSV file"
                 "$SRC_DIR/subsample" "../training_$cat.csv" $ss_ratio $rnd_seed
             else
                 warnEcho "Skip subsample training CSV file"
@@ -103,7 +109,8 @@ for cat in ${categories[@]}; do
                 "../../$DST_SETTINGS" \
                 "$TRAIN_FILE" \
                 "$TEST_FILE"
-                
+
+            ((++i_exp))
             ((++rnd_seed))
 
             cd ..
