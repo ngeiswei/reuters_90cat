@@ -44,13 +44,13 @@ TEST_OUTPUT="test_rand_signal.moses"
 
 set -x
 
-eval-candidate \
+${MOSES_BUILD}eval-candidate \
     -i "$TRAIN_FILE" \
     -y "true" \
     -Q 0 \
     -H $fitness_type > "$TRAIN_OUTPUT"
 
-eval-candidate \
+${MOSES_BUILD}eval-candidate \
     -i "$TEST_FILE" \
     -y "true" \
     -Q 0 \

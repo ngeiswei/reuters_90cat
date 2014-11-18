@@ -74,3 +74,9 @@ readonly float_re='[0-9.Ee+-]+'
 # 4. complexity penalty
 # 5. diversity penalty
 readonly composite_score_re="\[score=($float_re), penalized score=($float_re), complexity=([0-9]+), complexity penalty=($float_re), diversity penalty=($float_re)\]"
+
+# In case MOSES isn't install on the system. Don't forgot to end it by
+# '/' cause this is gonna be preprended to moses or feature-selection
+# without extra '/'
+MOSES_BUILD=""
+FEATURE_SELECTION_BUILD=""

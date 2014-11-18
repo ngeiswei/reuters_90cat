@@ -54,7 +54,7 @@ EVAL_OUTPUT="test.moses"
 
 set -x
 
-eval-candidate \
+${MOSES_BUILD}eval-candidate \
     -i "$TEST_DATASET" \
     -C "$MODELS" \
     -Q 0 \

@@ -30,7 +30,7 @@ MOSES_LOG="moses_$(chg_ext "$TRAIN_FILE" log)"
 
 set -x
 
-moses \
+${MOSES_BUILD}moses \
     -i "$TRAIN_FILE" \
     -r $RND_SEED \
     -j $jobs \

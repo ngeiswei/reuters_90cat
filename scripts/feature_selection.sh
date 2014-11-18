@@ -30,7 +30,7 @@ FS_OUTPUT="filtered_$TRAIN_FILE"
 
 set -x
 
-feature-selection \
+${FEATURE_SELECTION_BUILD}feature-selection \
     -i "$TRAIN_FILE" \
     -o "$FS_OUTPUT" \
     -r $RND_SEED \
