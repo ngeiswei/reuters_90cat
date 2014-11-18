@@ -211,14 +211,14 @@ ss_tanimoto_geometric_mean_threshold=1
 ####################################
 
 # List of categories to classify
-categories=(trade)
+categories=(earn)
 
 # In order to cancel out noise each experiment is redone multiple
 # times, each time with a different random seed (so training
 # subsampling, feature selection and MOSES search are different)
-rand_seeds_per_exp=2
+rand_seeds_per_exp=20
 
 # Sequence of subsampling ratios to apply on the training dataset. The
 # lower the subsampling ratio, the higher the propensity to overfit.
-# subsmp_ratios=(0.01 0.05 0.{1..9} 1)
-subsmp_ratios=(0.01 0.1 1)
+subsmp_ratios=(0.0{1..9} 0.{1..9} 1)
+# subsmp_ratios=(0.01 0.1 1)
