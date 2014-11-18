@@ -8,7 +8,7 @@ Requirements
 ------------
 
 * Git
-* Haskell
+* Haskell (with libraries: stemmer, multimap, multiset)
 * MOSES
 * stats (http://web.cs.wpi.edu/~claypool/misc/stats/stats.html)
 
